@@ -9,6 +9,13 @@
 owner: Kilowott-labs
 repo: uptime
 
+# Global User-Agent sent on all uptime checks. Browser-like to defeat naive
+# WAF bot rules (Cloudflare, Wordfence, etc. commonly block clients with
+# "bot" in the UA or no UA at all), but includes a Kilowott identifier so
+# site owners can distinguish our monitoring traffic from spoofed visitors
+# in their access logs.
+user-agent: "Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+
 # ----------------------------------------------------------------------
 # Site list
 # ----------------------------------------------------------------------
@@ -31,6 +38,42 @@ sites:
   - name: Equinavia
     url: https://equinavia.com/
     tags: [production, client-equinavia]
+
+  - name: Preikestolen Basecamp
+    url: https://preikestolenbasecamp.com/
+    tags: [production, client-preikestolen]
+
+  - name: Allgrid
+    url: https://allgrid.com/
+    tags: [production, client-allgrid]
+
+  - name: I Love Pole Buildings
+    url: https://ilovepolebuildings.com/
+    tags: [production, client-ilpb]
+
+  - name: Septic Masters
+    url: https://septic-masters.com/
+    tags: [production, client-septicmasters]
+
+  - name: Build a Barn
+    url: https://bildabarn.com/
+    tags: [production, client-buildabarn]
+
+  - name: I Trust Quality
+    url: https://www.itrustquality.com/
+    tags: [production, client-itrustquality]
+
+  - name: Dryer Vent Guardian
+    url: https://dryerventguardian.com/
+    tags: [production, client-dryervent]
+
+  - name: Call Big Red
+    url: https://callbigred.com/
+    tags: [production, client-bigred]
+
+  - name: Wood Rock Engineering
+    url: https://woodrockengineering.com/
+    tags: [production, client-woodrock]
 
   # --- Add more sites below as you expand coverage ---
   #

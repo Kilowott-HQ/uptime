@@ -49,7 +49,6 @@ sites:
 # Status page settings
 # ----------------------------------------------------------------------
 status-website:
-  cname: status.kilowott.com          # optional — remove if using github.io URL
   name: Kilowott status
   introTitle: "**Service status**"
   introMessage: |

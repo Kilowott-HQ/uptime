@@ -91,7 +91,7 @@ sites:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
 
   # ALERT PATH TEST — remove after validation
-  - name: "ALERT TEST - SAFE TO IGNORE"
+  - name: "ALERT TEST 2 - SAFE TO IGNORE"
     url: https://this-domain-will-never-resolve-kw12345.test
     tags: [test, internal]
     headers:

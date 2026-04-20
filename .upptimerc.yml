@@ -1,36 +1,119 @@
-# Change these first
-owner: upptime # Your GitHub organization or username, where this repository lives
-repo: upptime # The name of this repository
+# Kilowott Uptime — Upptime config
+# ----------------------------------
+# Docs: https://upptime.js.org/docs/configuration
+#
+# Check interval, notification channels, and site list live here.
+# Edit `sites:` below to add/remove URLs. Each site gets its own status
+# badge, history, and incident log.
+
+owner: Kilowott-labs
+repo: uptime
+
+# ----------------------------------------------------------------------
+# Site list
+# ----------------------------------------------------------------------
+# Format:
+#   - name: "Human-readable name"
+#     url: https://...
+#     tags: [production|staging, client-name|internal]  # optional, for filtering/display
+#     expectedStatusCodes: [200]  # optional, default 200-299
+#     maxResponseTime: 5000       # optional, milliseconds — fails if slower
+#
+# Add one entry per site. The more descriptive the name, the clearer
+# the status page + alerts.
 
 sites:
-  - name: Google
-    url: https://www.google.com
-  - name: Wikipedia
-    url: https://en.wikipedia.org
-  - name: Hacker News
-    url: https://news.ycombinator.com
-  - name: Test Broken Site
-    url: https://thissitedoesnotexist.koj.co
-  - name: IPv6 test
-    url: forwardemail.net
-    port: 80
-    check: "tcp-ping"
-    ipv6: true
+  # --- Production sites ---
+  - name: Nordic Fund Day
+    url: https://nordicfundday.no/
+    tags: [production, client-nordicfundday]
 
+  - name: Equinavia
+    url: https://equinavia.com/
+    tags: [production, client-equinavia]
+
+  # --- Add more sites below as you expand coverage ---
+  #
+  # TEMPLATE for production sites:
+  # - name: Client Project Production
+  #   url: https://clientproject.com
+  #   tags: [production, client-projectname]
+  #
+  # TEMPLATE for staging sites — remember to audit via scripts/audit-staging.sh
+  # before adding since URLs will be publicly discoverable in this config:
+  # - name: Client Project Staging
+  #   url: https://staging.clientproject.com
+  #   tags: [staging, client-projectname]
+
+# ----------------------------------------------------------------------
+# Status page settings
+# ----------------------------------------------------------------------
 status-website:
-  # Add your custom domain name, or remove the `cname` line if you don't have a domain
-  # Uncomment the `baseUrl` line if you don't have a custom domain and add your repo name there
-  cname: demo.upptime.js.org
-  # baseUrl: /your-repo-name
-  logoUrl: https://raw.githubusercontent.com/upptime/upptime.js.org/master/static/img/icon.svg
-  name: Upptime
-  introTitle: "**Upptime** is the open-source uptime monitor and status page, powered entirely by GitHub."
-  introMessage: This is a sample status page which uses **real-time** data from our [GitHub repository](https://github.com/upptime/upptime). No server required — just GitHub Actions, Issues, and Pages. [**Get your own for free**](https://github.com/upptime/upptime)
+  cname: status.kilowott.com          # optional — remove if using github.io URL
+  name: Kilowott status
+  introTitle: "**Service status**"
+  introMessage: |
+    Real-time uptime and response-time for Kilowott services.
+    Maintained by the Kilowott DevOps team. Updated every 5 minutes.
   navbar:
     - title: Status
       href: /
     - title: GitHub
-      href: https://github.com/$OWNER/$REPO
+      href: https://github.com/Kilowott-labs/uptime
+  logoUrl: https://kilowott.com/logo.svg   # optional — replace with your logo URL
 
-# Upptime also supports notifications, assigning issues, and more
-# See https://upptime.js.org/docs/configuration
+# ----------------------------------------------------------------------
+# Workflow settings
+# ----------------------------------------------------------------------
+# Upptime auto-schedules the uptime check workflow. Default is */5 minutes
+# (matches your "every 5 minutes" choice). No action needed here unless
+# you want to change it — that's configured in the workflow YAML itself
+# via Upptime's own repo actions.
+
+workflowSchedule:
+  graphs: "0 0 * * *"          # regenerate graphs daily at midnight UTC
+  responseTime: "0 23 * * *"   # recalc response-time stats daily
+  staticSite: "0 1 * * *"      # rebuild status page daily
+  summary: "0 0 * * *"         # daily summary regenerated
+  updateTemplate: "0 0 * * 1"  # pull upstream template updates weekly (Monday)
+  updates: "0 3 * * *"         # check for package updates
+  uptime: "*/5 * * * *"        # uptime check every 5 minutes
+
+# ----------------------------------------------------------------------
+# Assignees — who gets GitHub-notified on incidents
+# ----------------------------------------------------------------------
+# Upptime opens a GitHub issue on every downtime event. Assignees get
+# notifications. Add GitHub usernames of the people you want pinged.
+assignees:
+  - ajajrajguruKW   # replace with actual handle(s) of your ops team
+
+# ----------------------------------------------------------------------
+# Notification channels
+# ----------------------------------------------------------------------
+# Upptime supports multiple notification backends. Webhooks are simplest
+# (same pattern as Phase 3c's Slack notify once admin approves).
+#
+# See full list: https://upptime.js.org/docs/notifications
+
+notifications:
+  # - type: slack
+  #   webhookUrl: ${{ secrets.SLACK_WEBHOOK_URL }}
+  # - type: discord
+  #   webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
+  # - type: email
+  #   service: ${{ secrets.SMTP_SERVICE }}
+  #   user: ${{ secrets.SMTP_USER }}
+  #   pass: ${{ secrets.SMTP_PASS }}
+  #   from: status@kilowott.com
+  #   to: ops@kilowott.com
+
+# ----------------------------------------------------------------------
+# i18n
+# ----------------------------------------------------------------------
+i18n:
+  activeIncidents: Active incidents
+  allSystemsOperational: All services operational
+  incidentReport: "Incident report:"
+  upLabel: Up
+  downLabel: Down
+  degradedLabel: Degraded

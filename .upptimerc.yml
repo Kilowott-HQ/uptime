@@ -107,6 +107,7 @@ sites:
 # Status page settings
 # ----------------------------------------------------------------------
 status-website:
+  baseUrl: /uptime
   name: Kilowott status
   introTitle: "**Service status**"
   introMessage: |
@@ -114,10 +115,9 @@ status-website:
     Maintained by the Kilowott DevOps team. Updated every 5 minutes.
   navbar:
     - title: Status
-      href: /
+      href: /uptime/
     - title: GitHub
       href: https://github.com/Kilowott-labs/uptime
-  logoUrl: https://kilowott.com/logo.svg   # optional — replace with your logo URL
 
 # ----------------------------------------------------------------------
 # Workflow settings

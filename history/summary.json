@@ -40,18 +40,20 @@
     "url": "https://preikestolenbasecamp.com/",
     "icon": "https://icons.duckduckgo.com/ip3/preikestolenbasecamp.com.ico",
     "slug": "preikestolen-basecamp",
-    "status": "up",
-    "uptime": "100.00%",
-    "uptimeDay": "100.00%",
-    "uptimeWeek": "100.00%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "status": "down",
+    "uptime": "99.99%",
+    "uptimeDay": "99.99%",
+    "uptimeWeek": "99.99%",
+    "uptimeMonth": "99.99%",
+    "uptimeYear": "99.99%",
     "time": 1432,
     "timeDay": 1243,
     "timeWeek": 1432,
     "timeMonth": 1432,
     "timeYear": 1432,
-    "dailyMinutesDown": {}
+    "dailyMinutesDown": {
+      "2026-04-21": 0
+    }
   },
   {
     "name": "Allgrid",

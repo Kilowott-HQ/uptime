@@ -90,13 +90,6 @@ sites:
     headers:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
 
-  # ALERT PATH TEST — remove after validation
-  - name: "ALERT TEST 3 - SAFE TO IGNORE"
-    url: https://this-domain-will-never-resolve-kw12345.test
-    tags: [test, internal]
-    headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0)"
-
   # --- Add more sites below as you expand coverage ---
   #
   # TEMPLATE for production sites:

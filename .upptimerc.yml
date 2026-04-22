@@ -142,7 +142,8 @@ workflowSchedule:
 # Upptime opens a GitHub issue on every downtime event. Assignees get
 # notifications. Add GitHub usernames of the people you want pinged.
 assignees:
-  - ajajrajguruKW   # replace with actual handle(s) of your ops team
+  - ajajrajguruKW
+  - snehanair-ship-it
 
 # ----------------------------------------------------------------------
 # Notification channels

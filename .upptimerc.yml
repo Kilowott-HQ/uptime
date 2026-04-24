@@ -6,7 +6,7 @@
 # Edit `sites:` below to add/remove URLs. Each site gets its own status
 # badge, history, and incident log.
 
-owner: Kilowott-labs
+owner: Kilowott-HQ
 repo: uptime
 
 # ----------------------------------------------------------------------
@@ -28,67 +28,67 @@ sites:
     url: https://nordicfundday.no/
     tags: [production, client-nordicfundday]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Equinavia
     url: https://equinavia.com/
     tags: [production, client-equinavia]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Preikestolen Basecamp
     url: https://preikestolenbasecamp.com/
     tags: [production, client-preikestolen]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Allgrid
     url: https://allgrid.com/
     tags: [production, client-allgrid]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: I Love Pole Buildings
     url: https://ilovepolebuildings.com/
     tags: [production, client-ilpb]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Septic Masters
     url: https://septic-masters.com/
     tags: [production, client-septicmasters]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Build a Barn
     url: https://bildabarn.com/
     tags: [production, client-buildabarn]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: I Trust Quality
     url: https://www.itrustquality.com/
     tags: [production, client-itrustquality]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Dryer Vent Guardian
     url: https://dryerventguardian.com/
     tags: [production, client-dryervent]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Call Big Red
     url: https://callbigred.com/
     tags: [production, client-bigred]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Wood Rock Engineering
     url: https://woodrockengineering.com/
     tags: [production, client-woodrock]
     headers:
-      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-labs/uptime)"
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   # --- Add more sites below as you expand coverage ---
   #
@@ -117,7 +117,7 @@ status-website:
     - title: Status
       href: /uptime/
     - title: GitHub
-      href: https://github.com/Kilowott-labs/uptime
+      href: https://github.com/Kilowott-HQ/uptime
 
 # ----------------------------------------------------------------------
 # Workflow settings

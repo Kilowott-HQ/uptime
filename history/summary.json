@@ -22,19 +22,19 @@
     "url": "https://equinavia.com/",
     "icon": "https://icons.duckduckgo.com/ip3/equinavia.com.ico",
     "slug": "equinavia",
-    "status": "down",
-    "uptime": "100.00%",
-    "uptimeDay": "99.99%",
-    "uptimeWeek": "100.00%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "status": "up",
+    "uptime": "99.96%",
+    "uptimeDay": "99.64%",
+    "uptimeWeek": "99.95%",
+    "uptimeMonth": "99.96%",
+    "uptimeYear": "99.96%",
     "time": 789,
-    "timeDay": 508,
-    "timeWeek": 805,
+    "timeDay": 605,
+    "timeWeek": 804,
     "timeMonth": 789,
     "timeYear": 789,
     "dailyMinutesDown": {
-      "2026-04-29": 0
+      "2026-04-29": 5
     }
   },
   {

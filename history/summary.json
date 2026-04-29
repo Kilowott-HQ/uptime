@@ -12,7 +12,7 @@
     "uptimeYear": "100.00%",
     "time": 1063,
     "timeDay": 1049,
-    "timeWeek": 1064,
+    "timeWeek": 1096,
     "timeMonth": 1063,
     "timeYear": 1063,
     "dailyMinutesDown": {}
@@ -22,18 +22,20 @@
     "url": "https://equinavia.com/",
     "icon": "https://icons.duckduckgo.com/ip3/equinavia.com.ico",
     "slug": "equinavia",
-    "status": "up",
+    "status": "down",
     "uptime": "100.00%",
-    "uptimeDay": "100.00%",
+    "uptimeDay": "99.99%",
     "uptimeWeek": "100.00%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
-    "time": 819,
-    "timeDay": 763,
-    "timeWeek": 864,
-    "timeMonth": 819,
-    "timeYear": 819,
-    "dailyMinutesDown": {}
+    "time": 789,
+    "timeDay": 508,
+    "timeWeek": 805,
+    "timeMonth": 789,
+    "timeYear": 789,
+    "dailyMinutesDown": {
+      "2026-04-29": 0
+    }
   },
   {
     "name": "Preikestolen Basecamp",
@@ -48,7 +50,7 @@
     "uptimeYear": "100.00%",
     "time": 1539,
     "timeDay": 1637,
-    "timeWeek": 1611,
+    "timeWeek": 1624,
     "timeMonth": 1539,
     "timeYear": 1539,
     "dailyMinutesDown": {}
@@ -66,7 +68,7 @@
     "uptimeYear": "99.90%",
     "time": 3637,
     "timeDay": 4106,
-    "timeWeek": 3906,
+    "timeWeek": 4195,
     "timeMonth": 3637,
     "timeYear": 3637,
     "dailyMinutesDown": {
@@ -88,7 +90,7 @@
     "uptimeYear": "100.00%",
     "time": 197,
     "timeDay": 263,
-    "timeWeek": 193,
+    "timeWeek": 189,
     "timeMonth": 197,
     "timeYear": 197,
     "dailyMinutesDown": {}
@@ -106,7 +108,7 @@
     "uptimeYear": "100.00%",
     "time": 161,
     "timeDay": 194,
-    "timeWeek": 171,
+    "timeWeek": 174,
     "timeMonth": 161,
     "timeYear": 161,
     "dailyMinutesDown": {}
@@ -142,7 +144,7 @@
     "uptimeYear": "100.00%",
     "time": 222,
     "timeDay": 222,
-    "timeWeek": 245,
+    "timeWeek": 241,
     "timeMonth": 222,
     "timeYear": 222,
     "dailyMinutesDown": {}
@@ -160,7 +162,7 @@
     "uptimeYear": "100.00%",
     "time": 171,
     "timeDay": 258,
-    "timeWeek": 178,
+    "timeWeek": 182,
     "timeMonth": 171,
     "timeYear": 171,
     "dailyMinutesDown": {}
@@ -178,7 +180,7 @@
     "uptimeYear": "100.00%",
     "time": 920,
     "timeDay": 1477,
-    "timeWeek": 973,
+    "timeWeek": 1027,
     "timeMonth": 920,
     "timeYear": 920,
     "dailyMinutesDown": {}
@@ -196,7 +198,7 @@
     "uptimeYear": "100.00%",
     "time": 222,
     "timeDay": 180,
-    "timeWeek": 184,
+    "timeWeek": 183,
     "timeMonth": 222,
     "timeYear": 222,
     "dailyMinutesDown": {}

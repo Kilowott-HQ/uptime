@@ -60,7 +60,7 @@
     "url": "https://allgrid.com/",
     "icon": "https://icons.duckduckgo.com/ip3/allgrid.com.ico",
     "slug": "allgrid",
-    "status": "up",
+    "status": "down",
     "uptime": "99.88%",
     "uptimeDay": "99.72%",
     "uptimeWeek": "99.83%",
@@ -72,6 +72,7 @@
     "timeMonth": 3500,
     "timeYear": 3500,
     "dailyMinutesDown": {
+      "2026-04-30": 0,
       "2026-04-29": 4,
       "2026-04-27": 5,
       "2026-04-25": 4,

@@ -90,6 +90,9 @@ sites:
     headers:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
+  - name: Gutta Staging
+    url: https://staging.gutta.no
+
   # --- Add more sites below as you expand coverage ---
   #
   # TEMPLATE for production sites:

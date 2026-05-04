@@ -157,8 +157,8 @@ assignees:
 # See full list: https://upptime.js.org/docs/notifications
 
 notifications:
-  # - type: slack
-  #   webhookUrl: ${{ secrets.SLACK_WEBHOOK_URL }}
+  - type: slack
+    webhookUrl: $SLACK_WEBHOOK_URL
   # - type: discord
   #   webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
   # - type: email

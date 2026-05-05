@@ -21,6 +21,14 @@ on:
   repository_dispatch:
     types: [uptime]
   workflow_dispatch:
+# Force runner to use Node 20 for Upptime's actions.
+# Upstream upptime/uptime-monitor v1.41.1 ships a node-libcurl native binding
+# compiled against NODE_MODULE_VERSION 115 (Node 20). The runner forced Node 24
+# (NODE_MODULE_VERSION 127) earlier than expected, breaking the action.
+# This override keeps Node 20 until Upptime ships a Node 24-compatible release.
+# Re-apply after each Upptime template-update run, which regenerates this file.
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
 jobs:
   release:
     name: Check status

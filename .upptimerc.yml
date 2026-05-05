@@ -162,7 +162,7 @@ assignees:
 
 notifications:
   - type: slack
-    webhookUrl: $SLACK_WEBHOOK_URL
+    webhookUrl: ${SLACK_WEBHOOK_URL}
   # - type: discord
   #   webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
   # - type: email

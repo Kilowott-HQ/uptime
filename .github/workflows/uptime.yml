@@ -31,6 +31,22 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.GH_PAT || github.token }}
+      - name: Debug — confirm SLACK_WEBHOOK_URL is reaching runner
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "WEBHOOK IS EMPTY"
+            exit 1
+          else
+            echo "WEBHOOK PREFIX: ${SLACK_WEBHOOK_URL:0:40}"
+            echo "WEBHOOK LENGTH: ${#SLACK_WEBHOOK_URL}"
+            if [[ "$SLACK_WEBHOOK_URL" == https://hooks.slack.com/* ]]; then
+              echo "WEBHOOK STARTS WITH https://hooks.slack.com: YES"
+            else
+              echo "WEBHOOK STARTS WITH https://hooks.slack.com: NO"
+            fi
+          fi
       - name: Check endpoint status
         # Pinned to v1.41.0 — v1.41.1's node-libcurl binding is compiled
         # against NODE_MODULE_VERSION 115 (Node 20) and breaks on the

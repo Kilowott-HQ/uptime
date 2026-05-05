@@ -21,6 +21,13 @@ on:
   repository_dispatch:
     types: [uptime]
   workflow_dispatch:
+
+# Serialize uptime runs so concurrent dispatches/schedules can't both
+# observe the same state-change commit window and double-notify Slack.
+concurrency:
+  group: uptime-ci
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Check status
@@ -31,22 +38,6 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.GH_PAT || github.token }}
-      - name: Debug — confirm SLACK_WEBHOOK_URL is reaching runner
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ]; then
-            echo "WEBHOOK IS EMPTY"
-            exit 1
-          else
-            echo "WEBHOOK PREFIX: ${SLACK_WEBHOOK_URL:0:40}"
-            echo "WEBHOOK LENGTH: ${#SLACK_WEBHOOK_URL}"
-            if [[ "$SLACK_WEBHOOK_URL" == https://hooks.slack.com/* ]]; then
-              echo "WEBHOOK STARTS WITH https://hooks.slack.com: YES"
-            else
-              echo "WEBHOOK STARTS WITH https://hooks.slack.com: NO"
-            fi
-          fi
       - name: Capture starting SHA
         id: pre_sha
         run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT

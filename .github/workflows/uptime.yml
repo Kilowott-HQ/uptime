@@ -55,6 +55,51 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT || github.token }}
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
+      - name: Reconcile summary.json status from per-site history
+        # Upptime bug: summary.json's `status` field is only refreshed on
+        # state-change events, so sites that have been steadily up for
+        # weeks end up stuck showing `down` after any prior bad write.
+        # Per-site history/<slug>.yml is the source of truth — rewrite
+        # summary.json's status fields from those files after each run.
+        if: always()
+        run: |
+          set -euo pipefail
+          git fetch origin --quiet
+          git checkout origin/master -- history/ || true
+
+          [ -f history/summary.json ] || { echo "No summary.json yet — skip"; exit 0; }
+
+          # Build slug→status JSON map from per-site .yml files
+          map="{}"
+          for f in history/*.yml; do
+            [ -f "$f" ] || continue
+            slug=$(basename "$f" .yml)
+            [ "$slug" = "summary" ] && continue
+            status=$(yq -r '.status // "unknown"' "$f")
+            map=$(echo "$map" | jq --arg s "$slug" --arg st "$status" '. + {($s): $st}')
+          done
+
+          # Apply map to summary.json (only override status; keep all other fields)
+          tmp=$(mktemp)
+          jq --argjson map "$map" 'map(. + {status: ($map[.slug] // .status)})' \
+             history/summary.json > "$tmp"
+          mv "$tmp" history/summary.json
+
+          if git diff --quiet history/summary.json; then
+            echo "summary.json already in sync with per-site history."
+            exit 0
+          fi
+
+          git config user.email "73812536+upptime-bot@users.noreply.github.com"
+          git config user.name "Upptime Bot"
+          git add history/summary.json
+          # Subject starts with ':' so the Slack notify step's grep -v '|:' filter
+          # excludes it. [skip ci] prevents CI re-trigger. [upptime] keeps it
+          # consistent with other Upptime auto-commit suffixes.
+          git commit -m ":card_file_box: Reconcile summary.json status from per-site history [skip ci] [upptime]"
+          git pull --rebase origin master --quiet || true
+          git push origin HEAD:master
+
       - name: Notify Slack on state changes
         if: always()
         env:

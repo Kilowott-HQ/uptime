@@ -94,7 +94,7 @@ sites:
     url: https://staging.gutta.no
 
   - name: Phase 9a smoketest (will be removed)
-    url: https://this-domain-does-not-exist-kilowott-9a.invalid
+    url: https://kilowott.com/
     tags: [smoketest]
 
   # --- Add more sites below as you expand coverage ---

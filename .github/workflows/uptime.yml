@@ -70,7 +70,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           START_SHA="${{ steps.pre_sha.outputs.sha }}"
-          git fetch origin master --quiet
+          git fetch origin --quiet
           changes=$(git log "${START_SHA}..origin/master" --pretty=format:"%H|%s" | grep -E '^(🟥|🟩|🟨).*\[upptime\]$' || true)
           if [ -z "$changes" ]; then
             echo "No state-change commits — nothing to notify"

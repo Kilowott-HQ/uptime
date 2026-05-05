@@ -227,22 +227,22 @@
   },
   {
     "name": "Phase 9a smoketest (will be removed)",
-    "url": "https://this-domain-does-not-exist-kilowott-9a.invalid",
-    "icon": "https://icons.duckduckgo.com/ip3/this-domain-does-not-exist-kilowott-9a.invalid.ico",
+    "url": "https://kilowott.com",
+    "icon": "https://icons.duckduckgo.com/ip3/kilowott.com.ico",
     "slug": "phase-9a-smoketest-will-be-removed",
     "status": "down",
-    "uptime": "0.00%",
-    "uptimeDay": "0.00%",
-    "uptimeWeek": "0.00%",
-    "uptimeMonth": "0.00%",
-    "uptimeYear": "0.00%",
+    "uptime": "0.04%",
+    "uptimeDay": "0.04%",
+    "uptimeWeek": "0.04%",
+    "uptimeMonth": "0.04%",
+    "uptimeYear": "0.04%",
     "time": 1208,
     "timeDay": 1208,
     "timeWeek": 1208,
     "timeMonth": 1208,
     "timeYear": 1208,
     "dailyMinutesDown": {
-      "2026-05-05": 83,
+      "2026-05-05": 249,
       "2026-05-04": 693
     }
   }

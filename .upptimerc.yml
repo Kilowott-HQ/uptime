@@ -160,17 +160,13 @@ assignees:
 #
 # See full list: https://upptime.js.org/docs/notifications
 
-notifications:
-  - type: slack
-    webhookUrl: ${SLACK_WEBHOOK_URL}
-  # - type: discord
-  #   webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
-  # - type: email
-  #   service: ${{ secrets.SMTP_SERVICE }}
-  #   user: ${{ secrets.SMTP_USER }}
-  #   pass: ${{ secrets.SMTP_PASS }}
-  #   from: status@kilowott.com
-  #   to: ops@kilowott.com
+# Notifications are handled at the workflow level (uptime.yml "Notify Slack" step)
+# rather than via Upptime's built-in module, which silently drops POSTs in v1.41.x.
+# See .github/workflows/uptime.yml — "Notify Slack on state changes" step.
+#
+# notifications:
+#   - type: slack
+#     webhookUrl: ${SLACK_WEBHOOK_URL}
 
 # ----------------------------------------------------------------------
 # i18n

@@ -47,6 +47,10 @@ jobs:
               echo "WEBHOOK STARTS WITH https://hooks.slack.com: NO"
             fi
           fi
+      - name: Capture starting SHA
+        id: pre_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
       - name: Check endpoint status
         # Pinned to v1.41.0 — v1.41.1's node-libcurl binding is compiled
         # against NODE_MODULE_VERSION 115 (Node 20) and breaks on the
@@ -59,3 +63,34 @@ jobs:
         env:
           GH_PAT: ${{ secrets.GH_PAT || github.token }}
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
+
+      - name: Notify Slack on state changes
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          START_SHA="${{ steps.pre_sha.outputs.sha }}"
+          git pull --rebase --quiet
+          changes=$(git log "${START_SHA}..HEAD" --pretty=format:"%H|%s" | grep -E '\[upptime\]$' || true)
+          if [ -z "$changes" ]; then
+            echo "No state-change commits — nothing to notify"
+            exit 0
+          fi
+          failed=0
+          while IFS='|' read -r sha subject; do
+            [ -z "$sha" ] && continue
+            clean="${subject% \[upptime\]}"
+            commit_url="https://github.com/${{ github.repository }}/commit/${sha}"
+            payload=$(jq -n --arg text "$(printf '*%s*\n%s' "${clean}" "${commit_url}")" '{"text": $text}')
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST "${SLACK_WEBHOOK_URL}" \
+              -H "Content-Type: application/json" \
+              -d "${payload}")
+            echo "[notify] ${clean} → HTTP ${http_code}"
+            if [ "${http_code}" != "200" ]; then
+              failed=$((failed + 1))
+            fi
+          done <<< "${changes}"
+          if [ "${failed}" -gt 0 ]; then
+            exit 1
+          fi

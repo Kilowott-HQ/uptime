@@ -70,15 +70,15 @@ jobs:
           failed=0
           while IFS='|' read -r sha subject; do
             [ -z "$sha" ] && continue
+            # Strip Upptime's trailing tags so the Slack message is clean.
+            # Subject format: "🟥 Site is down (0 in 0 ms) [skip ci] [upptime]"
             clean="${subject% \[upptime\]}"
+            clean="${clean% \[skip ci\]}"
             commit_url="https://github.com/${{ github.repository }}/commit/${sha}"
-            # Page the channel only on bad news — down or degraded.
-            # Recoveries (is up) post quietly. Match on text rather than
-            # emoji bytes since the runner's grep mishandles UTF-8 emoji.
-            mention=""
-            if [[ "$clean" == *" is down ("* || "$clean" == *" is degraded ("* ]]; then
-              mention="<!channel> "
-            fi
+            # Always page @channel — every state-change commit is a real
+            # transition (down, degraded, OR recovery) and the team should
+            # know about all of them.
+            mention="<!channel> "
             payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
             http_code=$(curl -s -o /dev/null -w "%{http_code}" \
               -X POST "${SLACK_WEBHOOK_URL}" \

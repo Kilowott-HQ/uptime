@@ -1,0 +1,83 @@
+# ---------------------------------------------------------------------------
+# Site list changes — Slack notifier
+# ---------------------------------------------------------------------------
+# Fires when .upptimerc.yml changes on master and diffs the sites: list to
+# detect additions or removals. Posts one Slack message per push that lists
+# what was added/removed. Useful for keeping the team informed about which
+# Kilowott services are now under uptime monitoring.
+#
+# Renames (e.g. "Gutta Staging" → "Gutta") show up as one removal + one
+# addition, which is the correct semantic — the old slug stops being tracked
+# and a new one starts.
+
+name: Site list changes
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.upptimerc.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with prior commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Diff site list and notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+
+          # Extract "name|url" pairs from each version. yq is pre-installed
+          # on ubuntu-latest. The ?-suffix on .sites makes it tolerant of
+          # the file existing without a sites key (first commit of the file).
+          git show HEAD:.upptimerc.yml | yq -r '.sites[]? | "\(.name)|\(.url)"' | sort > new.txt
+          git show HEAD~1:.upptimerc.yml 2>/dev/null | yq -r '.sites[]? | "\(.name)|\(.url)"' | sort > old.txt || echo -n > old.txt
+
+          added=$(comm -23 new.txt old.txt || true)
+          removed=$(comm -13 new.txt old.txt || true)
+
+          if [ -z "$added" ] && [ -z "$removed" ]; then
+            echo "No site additions or removals — config-only change. Nothing to notify."
+            exit 0
+          fi
+
+          # Build Slack message body. Use printf so \n becomes a real newline
+          # in the JSON payload via jq's --arg substitution.
+          message=""
+          if [ -n "$added" ]; then
+            message="*Sites added to uptime monitoring:*"
+            while IFS='|' read -r name url; do
+              [ -z "$name" ] && continue
+              message="${message}"$'\n'"• \`${name}\` — ${url}"
+            done <<< "$added"
+          fi
+          if [ -n "$removed" ]; then
+            [ -n "$message" ] && message="${message}"$'\n\n'
+            message="${message}*Sites removed from uptime monitoring:*"
+            while IFS='|' read -r name url; do
+              [ -z "$name" ] && continue
+              message="${message}"$'\n'"• \`${name}\` — ${url}"
+            done <<< "$removed"
+          fi
+
+          commit_url="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+          message="${message}"$'\n\n'"<${commit_url}|View commit>"
+
+          payload=$(jq -n --arg text "$message" '{"text": $text}')
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${SLACK_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d "${payload}")
+          echo "[notify] site-list change → HTTP ${http_code}"
+          if [ "${http_code}" != "200" ]; then
+            exit 1
+          fi

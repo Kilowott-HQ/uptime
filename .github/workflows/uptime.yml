@@ -72,7 +72,14 @@ jobs:
             [ -z "$sha" ] && continue
             clean="${subject% \[upptime\]}"
             commit_url="https://github.com/${{ github.repository }}/commit/${sha}"
-            payload=$(jq -n --arg text "$(printf '*%s*\n%s' "${clean}" "${commit_url}")" '{"text": $text}')
+            # Page the channel only on bad news — down or degraded.
+            # Recoveries (is up) post quietly. Match on text rather than
+            # emoji bytes since the runner's grep mishandles UTF-8 emoji.
+            mention=""
+            if [[ "$clean" == *" is down ("* || "$clean" == *" is degraded ("* ]]; then
+              mention="<!channel> "
+            fi
+            payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
             http_code=$(curl -s -o /dev/null -w "%{http_code}" \
               -X POST "${SLACK_WEBHOOK_URL}" \
               -H "Content-Type: application/json" \

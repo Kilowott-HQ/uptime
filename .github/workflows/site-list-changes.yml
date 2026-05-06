@@ -17,6 +17,19 @@ on:
     branches: [master]
     paths:
       - '.upptimerc.yml'
+  # Manual fallback — squash-merging a PR with Upptime auto-commits in it
+  # bakes [skip ci] into the merge commit message and GitHub skips the
+  # auto-trigger. workflow_dispatch lets us fire the notifier manually.
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: 'Compare current master against this commit SHA (default: HEAD~1). Use to replay a missed notification by passing the SHA *before* the change you want to announce.'
+        required: false
+        default: ''
+      head_sha:
+        description: 'Optional — compare against this SHA instead of HEAD. Default: current master HEAD.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -25,10 +38,12 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout with prior commit
+      - name: Checkout with full history
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          # Full history needed so manual replay can reach arbitrary
+          # historic SHAs via the workflow_dispatch base_sha input.
+          fetch-depth: 0
 
       - name: Diff site list and notify Slack
         env:
@@ -36,11 +51,21 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Resolve which two commits to diff. Push events default to
+          # HEAD vs HEAD~1. workflow_dispatch can override either side
+          # via the base_sha / head_sha inputs — use this to replay a
+          # missed notification for a specific historic change.
+          head_ref="${{ github.event.inputs.head_sha }}"
+          base_ref="${{ github.event.inputs.base_sha }}"
+          [ -z "$head_ref" ] && head_ref="HEAD"
+          [ -z "$base_ref" ] && base_ref="${head_ref}~1"
+          echo "Diffing ${base_ref}..${head_ref}"
+
           # Extract "name|url" pairs from each version. yq is pre-installed
           # on ubuntu-latest. The ?-suffix on .sites makes it tolerant of
           # the file existing without a sites key (first commit of the file).
-          git show HEAD:.upptimerc.yml | yq -r '.sites[]? | "\(.name)|\(.url)"' | sort > new.txt
-          git show HEAD~1:.upptimerc.yml 2>/dev/null | yq -r '.sites[]? | "\(.name)|\(.url)"' | sort > old.txt || echo -n > old.txt
+          git show "${head_ref}:.upptimerc.yml" | yq -r '.sites[]? | "\(.name)|\(.url)"' | sort > new.txt
+          git show "${base_ref}:.upptimerc.yml" 2>/dev/null | yq -r '.sites[]? | "\(.name)|\(.url)"' | sort > old.txt || echo -n > old.txt
 
           added=$(comm -23 new.txt old.txt || true)
           removed=$(comm -13 new.txt old.txt || true)
@@ -69,7 +94,9 @@ jobs:
             done <<< "$removed"
           fi
 
-          commit_url="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+          # Link to the head commit being announced (not the dispatch run).
+          link_sha=$(git rev-parse "$head_ref")
+          commit_url="https://github.com/${{ github.repository }}/commit/${link_sha}"
           message="${message}"$'\n\n'"<${commit_url}|View commit>"
 
           payload=$(jq -n --arg text "$message" '{"text": $text}')

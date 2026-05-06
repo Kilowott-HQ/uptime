@@ -96,6 +96,12 @@ sites:
     headers:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
+  - name: Utviklingscoach
+    url: https://utviklingscoach.no/
+    tags: [production, client-utviklingscoach]
+    headers:
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
+
   # --- Add more sites below as you expand coverage ---
   #
   # TEMPLATE for production sites:

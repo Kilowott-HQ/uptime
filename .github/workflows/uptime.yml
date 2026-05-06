@@ -6,7 +6,7 @@
 # Your changes will be overwritten when the Upptime template updates (by default, weekly)
 # Instead, change .upptimerc.yml configuration and the workflows will be generated accordingly.
 #
-# 🔼 Upptime @v1.41.1
+# 🔼 Upptime @v1.41.2
 # GitHub-powered open-source uptime monitor and status page by Anand Chowdhary
 
 # * Source: https://github.com/upptime/upptime
@@ -21,13 +21,6 @@ on:
   repository_dispatch:
     types: [uptime]
   workflow_dispatch:
-
-# Serialize uptime runs so concurrent dispatches/schedules can't both
-# observe the same state-change commit window and double-notify Slack.
-concurrency:
-  group: uptime-ci
-  cancel-in-progress: false
-
 jobs:
   release:
     name: Check status
@@ -38,102 +31,10 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.GH_PAT || github.token }}
-      - name: Capture starting SHA
-        id: pre_sha
-        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-
       - name: Check endpoint status
-        # Pinned to v1.41.0 — v1.41.1's node-libcurl binding is compiled
-        # against NODE_MODULE_VERSION 115 (Node 20) and breaks on the
-        # current runner (Node 24, NODE_MODULE_VERSION 127). v1.41.0 was
-        # the last version that ran successfully (04:10 UTC 2026-05-05).
-        # Will need re-pinning after each Upptime template-update run.
-        uses: upptime/uptime-monitor@v1.41.0
+        uses: upptime/uptime-monitor@v1.41.2
         with:
           command: "update"
         env:
           GH_PAT: ${{ secrets.GH_PAT || github.token }}
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
-
-      - name: Reconcile summary.json status from per-site history
-        # Upptime bug: summary.json's `status` field is only refreshed on
-        # state-change events, so sites that have been steadily up for
-        # weeks end up stuck showing `down` after any prior bad write.
-        # Per-site history/<slug>.yml is the source of truth — rewrite
-        # summary.json's status fields from those files after each run.
-        if: always()
-        run: |
-          set -euo pipefail
-          git fetch origin --quiet
-          git checkout origin/master -- history/ || true
-
-          [ -f history/summary.json ] || { echo "No summary.json yet — skip"; exit 0; }
-
-          # Build slug→status JSON map from per-site .yml files
-          map="{}"
-          for f in history/*.yml; do
-            [ -f "$f" ] || continue
-            slug=$(basename "$f" .yml)
-            [ "$slug" = "summary" ] && continue
-            status=$(yq -r '.status // "unknown"' "$f")
-            map=$(echo "$map" | jq --arg s "$slug" --arg st "$status" '. + {($s): $st}')
-          done
-
-          # Apply map to summary.json (only override status; keep all other fields)
-          tmp=$(mktemp)
-          jq --argjson map "$map" 'map(. + {status: ($map[.slug] // .status)})' \
-             history/summary.json > "$tmp"
-          mv "$tmp" history/summary.json
-
-          if git diff --quiet history/summary.json; then
-            echo "summary.json already in sync with per-site history."
-            exit 0
-          fi
-
-          git config user.email "73812536+upptime-bot@users.noreply.github.com"
-          git config user.name "Upptime Bot"
-          git add history/summary.json
-          # Subject starts with ':' so the Slack notify step's grep -v '|:' filter
-          # excludes it. [skip ci] prevents CI re-trigger. [upptime] keeps it
-          # consistent with other Upptime auto-commit suffixes.
-          git commit -m ":card_file_box: Reconcile summary.json status from per-site history [skip ci] [upptime]"
-          git pull --rebase origin master --quiet || true
-          git push origin HEAD:master
-
-      - name: Notify Slack on state changes
-        if: always()
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          START_SHA="${{ steps.pre_sha.outputs.sha }}"
-          git fetch origin --quiet
-          changes=$(git log "${START_SHA}..origin/master" --pretty=format:"%H|%s" | grep -E '\[upptime\]$' | grep -v '|:' || true)
-          if [ -z "$changes" ]; then
-            echo "No state-change commits — nothing to notify"
-            exit 0
-          fi
-          failed=0
-          while IFS='|' read -r sha subject; do
-            [ -z "$sha" ] && continue
-            # Strip Upptime's trailing tags so the Slack message is clean.
-            # Subject format: "🟥 Site is down (0 in 0 ms) [skip ci] [upptime]"
-            clean="${subject% \[upptime\]}"
-            clean="${clean% \[skip ci\]}"
-            commit_url="https://github.com/${{ github.repository }}/commit/${sha}"
-            # Always page @channel — every state-change commit is a real
-            # transition (down, degraded, OR recovery) and the team should
-            # know about all of them.
-            mention="<!channel> "
-            payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
-            http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-              -X POST "${SLACK_WEBHOOK_URL}" \
-              -H "Content-Type: application/json" \
-              -d "${payload}")
-            echo "[notify] ${clean} → HTTP ${http_code}"
-            if [ "${http_code}" != "200" ]; then
-              failed=$((failed + 1))
-            fi
-          done <<< "${changes}"
-          if [ "${failed}" -gt 0 ]; then
-            exit 1
-          fi

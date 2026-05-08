@@ -101,11 +101,30 @@ jobs:
           failed=0
           while IFS='|' read -r sha subject; do
             [ -z "$sha" ] && continue
+
+            # Real state changes flip the `status:` field in history/<slug>.yml.
+            # Upptime v1.41.3+ also emits `🟩 X is up` commits when only the
+            # `responseTime:` / `lastUpdated:` fields are refreshed (e.g. by
+            # the daily Response Time CI cron), even when state didn't change.
+            # Skip those — only fire on commits that actually flip status.
+            #
+            # Diff lines starting with -/+status: tell us. Two distinct values
+            # ⇒ real flip (e.g. -status: down / +status: up). Zero or one
+            # ⇒ no status change (or file added/removed — handled by the
+            # site-list-changes notifier, not this one).
+            status_lines=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
+              | grep -E '^[+-]status:' | sort -u)
+            status_distinct=$(echo "$status_lines" | grep -c .)
+            if [ "$status_distinct" -lt 2 ]; then
+              echo "[skip] $subject — no status field change in diff"
+              continue
+            fi
+
             # Strip Upptime's trailing tags so the Slack message is clean.
             clean="${subject% \[upptime\]}"
             clean="${clean% \[skip ci\]}"
             commit_url="https://github.com/${{ github.repository }}/commit/${sha}"
-            # Page @channel on every state transition (down, degraded, recovery).
+            # Page @channel on every real state transition (down/degraded/up).
             mention="<!channel> "
             payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
             http_code=$(curl -s -o /dev/null -w "%{http_code}" \

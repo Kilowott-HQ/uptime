@@ -125,7 +125,7 @@ jobs:
             # Two distinct +/-status: lines ⇒ real flip. Otherwise skip.
             status_lines=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
               | grep -E '^[+-]status:' | sort -u)
-            status_distinct=$(echo "$status_lines" | grep -c .)
+            status_distinct=$(echo "$status_lines" | grep -c . || true)
             if [ "$status_distinct" -lt 2 ]; then
               echo "[skip] $subject — no status field change in diff"
               continue

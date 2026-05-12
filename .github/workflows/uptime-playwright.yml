@@ -1,0 +1,254 @@
+#
+# Uptime check via Playwright (headless Chromium) for sites that return 403
+# to GitHub Actions Azure IPs due to Cloudflare Bot Fight Mode.
+#
+# Sites opt in by including the `playwright` tag in .upptimerc.yml.
+# Currently: Gutta (gutta.no), Utviklingscoach (utviklingscoach.no).
+#
+# Shares the `uptime-ci` concurrency group with uptime.yml so history/
+# commits never race each other. Slack notify logic is identical to
+# uptime.yml — only real status flips (^[+-]status: diff) trigger @channel.
+
+name: Uptime CI — Playwright
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  repository_dispatch:
+    types: [uptime-playwright]
+  workflow_dispatch:
+
+concurrency:
+  group: uptime-ci
+  cancel-in-progress: false
+
+jobs:
+  playwright-check:
+    name: Playwright site check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GH_PAT || github.token }}
+
+      - name: Capture starting SHA
+        id: pre_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-v1
+
+      - name: Install Playwright + Chromium
+        run: |
+          npm install playwright --no-save --quiet
+          npx playwright install --with-deps chromium
+
+      - name: Write Playwright check script
+        run: |
+          cat > pw-check.js << 'JSEOF'
+          const { chromium } = require('playwright');
+          const url = process.argv[2];
+          if (!url) {
+            console.log(JSON.stringify({ status: 'down', code: 0, responseTime: 0 }));
+            process.exit(0);
+          }
+          (async () => {
+            let browser;
+            const t0 = Date.now();
+            try {
+              browser = await chromium.launch({ headless: true });
+              const ctx = await browser.newContext({
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+              });
+              const page = await ctx.newPage();
+              const resp = await page.goto(url, { timeout: 30000, waitUntil: 'domcontentloaded' });
+              const elapsed = Date.now() - t0;
+              const code = resp ? resp.status() : 0;
+              console.log(JSON.stringify({
+                status: code >= 200 && code < 400 ? 'up' : 'down',
+                code,
+                responseTime: elapsed
+              }));
+            } catch (e) {
+              process.stderr.write('PW error: ' + e.message + '\n');
+              console.log(JSON.stringify({ status: 'down', code: 0, responseTime: Date.now() - t0 }));
+            } finally {
+              if (browser) await browser.close();
+            }
+          })();
+          JSEOF
+
+      - name: Check sites via headless Chromium
+        run: |
+          set -euo pipefail
+          python3 - <<'PYEOF'
+          import yaml, json, subprocess, os, re, sys
+          from datetime import datetime, timezone
+
+          with open('.upptimerc.yml') as f:
+              config = yaml.safe_load(f)
+
+          playwright_sites = [
+              s for s in config.get('sites', [])
+              if 'playwright' in (s.get('tags') or [])
+          ]
+
+          if not playwright_sites:
+              print('No playwright-tagged sites in .upptimerc.yml — nothing to check')
+              sys.exit(0)
+
+          print(f'Checking {len(playwright_sites)} playwright-tagged site(s)...')
+
+          def slugify(name):
+              s = name.lower()
+              s = re.sub(r'[^\w\s-]', '', s)
+              s = re.sub(r'[\s_]+', '-', s)
+              s = re.sub(r'-+', '-', s)
+              return s.strip('-')
+
+          now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+          os.makedirs('history', exist_ok=True)
+
+          for site in playwright_sites:
+              name = site['name']
+              url  = site['url']
+              slug = slugify(name)
+              hist_path = f'history/{slug}.yml'
+
+              print(f'  {name}  ({url})')
+
+              try:
+                  result = subprocess.run(
+                      ['node', 'pw-check.js', url],
+                      capture_output=True, text=True, timeout=60
+                  )
+                  if result.stderr:
+                      print(f'    stderr: {result.stderr.strip()}')
+                  raw = result.stdout.strip()
+                  data = json.loads(raw) if raw else {}
+                  if not data:
+                      raise ValueError('empty output from pw-check.js')
+              except Exception as e:
+                  print(f'    Check error: {e}')
+                  data = {'status': 'down', 'code': 0, 'responseTime': 0}
+
+              new_status = data.get('status', 'down')
+              code       = data.get('code', 0)
+              rt         = data.get('responseTime', 0)
+              print(f'    → {new_status}  (HTTP {code},  {rt}ms)')
+
+              hist_data = {}
+              if os.path.exists(hist_path):
+                  with open(hist_path) as f:
+                      hist_data = yaml.safe_load(f) or {}
+
+              hist_data['url']          = url
+              hist_data['status']       = new_status
+              hist_data['code']         = code
+              hist_data['responseTime'] = rt
+              hist_data['lastUpdated']  = now
+              if 'startTime' not in hist_data:
+                  hist_data['startTime'] = now
+              hist_data['generator'] = 'Upptime <https://github.com/upptime/upptime>'
+
+              with open(hist_path, 'w') as f:
+                  yaml.dump(hist_data, f, allow_unicode=True,
+                            sort_keys=False, default_flow_style=False)
+              print(f'    History → {hist_path}')
+          PYEOF
+
+      - name: Commit and push history
+        run: |
+          set -euo pipefail
+
+          git add history/*.yml 2>/dev/null || true
+
+          if git diff --staged --quiet; then
+            echo "No history changes — nothing to commit"
+            exit 0
+          fi
+
+          git config user.email "73812536+upptime-bot@users.noreply.github.com"
+          git config user.name "Upptime Bot"
+
+          # Build commit message — describe any real status flips
+          status_changes=()
+          while IFS= read -r f; do
+            slug=$(basename "$f" .yml)
+            old_status=$(git show HEAD:"$f" 2>/dev/null \
+              | grep '^status:' | head -1 | awk '{print $2}' || echo "unknown")
+            new_status=$(grep '^status:' "$f" 2>/dev/null \
+              | head -1 | awk '{print $2}' || echo "unknown")
+            if [ "$old_status" != "$new_status" ]; then
+              if [ "$new_status" = "up" ]; then
+                status_changes+=("🟩 ${slug} is up (Playwright)")
+              else
+                status_changes+=("🟥 ${slug} is down (Playwright)")
+              fi
+            fi
+          done < <(git diff --staged --name-only \
+              | grep 'history/.*\.yml' | grep -v 'summary' || true)
+
+          if [ ${#status_changes[@]} -gt 0 ]; then
+            joined=$(IFS=', '; echo "${status_changes[*]}")
+            msg="${joined} [skip ci] [upptime]"
+          else
+            msg="Playwright: update history [skip ci] [upptime]"
+          fi
+
+          git commit -m "$msg"
+          git pull --rebase origin master --quiet || true
+          git push origin HEAD:master
+
+      - name: Notify Slack on state changes
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          START_SHA="${{ steps.pre_sha.outputs.sha }}"
+          git fetch origin --quiet
+          changes=$(git log "${START_SHA}..origin/master" --pretty=format:"%H|%s" | grep -E '\[upptime\]$' | grep -v '|:' || true)
+          if [ -z "$changes" ]; then
+            echo "No state-change commits — nothing to notify"
+            exit 0
+          fi
+          failed=0
+          while IFS='|' read -r sha subject; do
+            [ -z "$sha" ] && continue
+
+            # Only ping on commits that flip the status: field in history/<slug>.yml.
+            # Two distinct +/-status: lines ⇒ real flip. Otherwise skip.
+            status_lines=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
+              | grep -E '^[+-]status:' | sort -u)
+            status_distinct=$(echo "$status_lines" | grep -c .)
+            if [ "$status_distinct" -lt 2 ]; then
+              echo "[skip] $subject — no status field change in diff"
+              continue
+            fi
+
+            clean="${subject% \[upptime\]}"
+            clean="${clean% \[skip ci\]}"
+            commit_url="https://github.com/${{ github.repository }}/commit/${sha}"
+            mention="<!channel> "
+            payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST "${SLACK_WEBHOOK_URL}" \
+              -H "Content-Type: application/json" \
+              -d "${payload}")
+            echo "[notify] ${clean} → HTTP ${http_code}"
+            if [ "${http_code}" != "200" ]; then
+              failed=$((failed + 1))
+            fi
+          done <<< "${changes}"
+          if [ "${failed}" -gt 0 ]; then
+            exit 1
+          fi

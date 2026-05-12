@@ -92,13 +92,13 @@ sites:
 
   - name: Gutta
     url: https://gutta.no/
-    tags: [production, client-gutta]
+    tags: [production, client-gutta, playwright]
     headers:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
   - name: Utviklingscoach
     url: https://utviklingscoach.no/
-    tags: [production, client-utviklingscoach]
+    tags: [production, client-utviklingscoach, playwright]
     headers:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 

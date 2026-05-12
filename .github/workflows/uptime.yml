@@ -36,6 +36,27 @@ jobs:
         id: pre_sha
         run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
+      - name: Strip Playwright-checked sites from .upptimerc.yml
+        # Gutta + Utviklingscoach are tagged `playwright` — they block GitHub Actions
+        # Azure IPs via Cloudflare Bot Fight Mode, causing false 403 downtime alerts.
+        # Remove them here so Upptime's HTTP-GET checker never sees them.
+        # uptime-playwright.yml handles their checks via headless Chromium.
+        run: |
+          python3 - <<'PYEOF'
+          import yaml
+          with open('.upptimerc.yml') as f:
+              data = yaml.safe_load(f)
+          orig = len(data.get('sites', []))
+          data['sites'] = [
+              s for s in data.get('sites', [])
+              if 'playwright' not in (s.get('tags') or [])
+          ]
+          removed = orig - len(data['sites'])
+          with open('.upptimerc.yml', 'w') as f:
+              yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
+          print(f'Stripped {removed} playwright-tagged site(s) — {len(data["sites"])} site(s) remain for HTTP check')
+          PYEOF
+
       - name: Check endpoint status
         uses: upptime/uptime-monitor@v1.41.3
         with:

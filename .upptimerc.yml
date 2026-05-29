@@ -90,6 +90,12 @@ sites:
     headers:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
+  - name: Ways Trafikkskole
+    url: https://ways-trafikkskole.no/
+    tags: [production, client-ways]
+    headers:
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
+
   - name: Gutta
     url: https://gutta.no/
     tags: [production, client-gutta, playwright]

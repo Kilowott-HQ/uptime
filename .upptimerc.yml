@@ -92,7 +92,7 @@ sites:
 
   - name: Ways Trafikkskole
     url: https://ways-trafikkskole.no/
-    tags: [production, client-ways]
+    tags: [production, client-ways, playwright]
     headers:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 

@@ -96,6 +96,12 @@ sites:
     headers:
       - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
 
+  - name: Paul John Caffeine
+    url: https://pauljohncaffeine.com/
+    tags: [production, client-pauljohn]
+    headers:
+      - "User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)"
+
   - name: Gutta
     url: https://gutta.no/
     tags: [production, client-gutta, playwright]

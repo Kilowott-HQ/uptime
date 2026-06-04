@@ -18,6 +18,13 @@ on:
   schedule:
     - cron: "2-57/5 * * * *"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip the actual Slack POST — log the payload only. Use for verification testing.'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
 
 concurrency:
   group: confirm-alerts
@@ -91,10 +98,16 @@ jobs:
             clean="${clean% \[skip ci\]}"
             mention="<!channel> "
             payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
-            http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-              -X POST "${SLACK_WEBHOOK_URL}" \
-              -H "Content-Type: application/json" \
-              -d "${payload}")
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              echo "[DRY-RUN] would POST to Slack: ${clean} | commit_url=${commit_url}"
+              echo "[DRY-RUN] payload: ${payload}"
+              http_code=200
+            else
+              http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+                -X POST "${SLACK_WEBHOOK_URL}" \
+                -H "Content-Type: application/json" \
+                -d "${payload}")
+            fi
             echo "[notify-confirmed] ${clean} → HTTP ${http_code}"
             if [ "${http_code}" != "200" ]; then
               failed=$((failed + 1))

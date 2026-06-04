@@ -153,12 +153,12 @@ jobs:
               first_seen=$(git show -s --format=%cI "$sha")
               url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}')
               mkdir -p .alerts/pending
-              cat > "$marker_path" <<MARKER
-url: ${url}
-subject: ${subject}
-commit_url: https://github.com/${{ github.repository }}/commit/${sha}
-first_seen: ${first_seen}
-MARKER
+              {
+                echo "url: ${url}"
+                echo "subject: ${subject}"
+                echo "commit_url: https://github.com/${{ github.repository }}/commit/${sha}"
+                echo "first_seen: ${first_seen}"
+              } > "$marker_path"
               git add "$marker_path"
               pending_changes=1
               echo "[defer] $subject — marker written. confirm-down-alerts will verify in ~6 min."

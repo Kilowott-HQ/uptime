@@ -4,6 +4,7 @@
 # Notify Slack) and the status-only filter are not part of the upstream
 # template. Setup CI's `Update template` step has been removed and
 # update-template.yml has been deleted to prevent regeneration.
+#   - code:0 transient gate (re-probes the URL once before Slack alerts)
 #
 # 🔼 Upptime @v1.41.3
 
@@ -129,6 +130,23 @@ jobs:
             if [ "$status_distinct" -lt 2 ]; then
               echo "[skip] $subject — no status field change in diff"
               continue
+            fi
+
+            # code:0 transient gate — re-probe before alerting on network failures.
+            new_status=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
+              | grep -E '^\+status:' | head -1 | awk '{print $2}')
+            new_code=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
+              | grep -E '^\+code:' | head -1 | awk '{print $2}')
+            if [ "${new_status}" = "down" ] && [ "${new_code}" = "0" ]; then
+              slug_file=$(git show --no-renames --name-only --format= "$sha" -- 'history/*.yml' | head -1)
+              url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}')
+              probe_code=$(curl -sIL -o /dev/null -w "%{http_code}" --max-time 15 \
+                -A "Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)" \
+                "$url" || echo 000)
+              if echo "${probe_code}" | grep -qE '^[23]..$'; then
+                echo "[skip] $subject — code:0 in commit but live verify returned ${probe_code} (transient). Suppressing Slack."
+                continue
+              fi
             fi
 
             clean="${subject% \[upptime\]}"

@@ -5,6 +5,7 @@
 # template. Setup CI's `Update template` step has been removed and
 # update-template.yml has been deleted to prevent regeneration.
 #   - code:0 transient gate (re-probes the URL once before Slack alerts)
+#   - code:0 down flips defer to confirm-down-alerts.yml (write marker, no Slack)
 #
 # 🔼 Upptime @v1.41.3
 
@@ -116,6 +117,7 @@ jobs:
             echo "No state-change commits — nothing to notify"
             exit 0
           fi
+          pending_changes=0
           failed=0
           while IFS='|' read -r sha subject; do
             [ -z "$sha" ] && continue
@@ -132,27 +134,43 @@ jobs:
               continue
             fi
 
-            # code:0 transient gate — re-probe before alerting on network failures.
-            # Skip on probe success (2xx/3xx) OR probe network-failure (000):
-            # 000 means runner→origin still unreachable. Either origin recovered
-            # already, or path/runner-side issue — Upstream Issue still opens
-            # so real outages remain visible in GitHub Issues even when quiet.
-            # Real 4xx/5xx down pings immediately (new_code != 0 bypasses gate).
+            # code:0 defer-and-confirm — write marker, skip Slack until confirm-down-alerts.yml
+            # verifies the site is still down after one cron tick (~6 min).
+            # Real 4xx/5xx (code != 0) bypass this gate and ping immediately below.
+            # Recovery (status up) deletes any matching marker (suppresses recovery ping
+            # if no down was issued — keeps Slack silent for true transients).
             new_status=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
               | grep -E '^\+status:' | head -1 | awk '{print $2}')
             new_code=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
               | grep -E '^\+code:' | head -1 | awk '{print $2}')
+            slug_file=$(git show --no-renames --name-only --format= "$sha" -- 'history/*.yml' | head -1)
+            slug=$(basename "$slug_file" .yml)
+            marker_path=".alerts/pending/${slug}.yml"
+            echo "[gate] sha=$sha slug=$slug new_status=$new_status new_code=$new_code"
+
             if [ "${new_status}" = "down" ] && [ "${new_code}" = "0" ]; then
-              slug_file=$(git show --no-renames --name-only --format= "$sha" -- 'history/*.yml' | head -1)
+              # Defer. Write marker, no Slack yet.
+              first_seen=$(git show -s --format=%cI "$sha")
               url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}')
-              probe_code=$(curl -sIL -o /dev/null -w "%{http_code}" --max-time 15 \
-                -A "Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)" \
-                "$url" || echo 000)
-              echo "[gate] sha=$sha slug=$slug_file new_status=$new_status new_code=$new_code probe_code=$probe_code"
-              if echo "${probe_code}" | grep -qE '^(000|[23]..)$'; then
-                echo "[skip] $subject — code:0 + probe=${probe_code}. Suppressing Slack (transient or runner→origin unreachable)."
-                continue
-              fi
+              mkdir -p .alerts/pending
+              cat > "$marker_path" <<MARKER
+url: ${url}
+subject: ${subject}
+commit_url: https://github.com/${{ github.repository }}/commit/${sha}
+first_seen: ${first_seen}
+MARKER
+              git add "$marker_path"
+              pending_changes=1
+              echo "[defer] $subject — marker written. confirm-down-alerts will verify in ~6 min."
+              continue
+            fi
+
+            if [ "${new_status}" = "up" ] && [ -f "$marker_path" ]; then
+              # Recovery before confirm fired → silent. Suppress recovery ping too.
+              git rm -f "$marker_path"
+              pending_changes=1
+              echo "[suppress] $subject — recovery before confirm tick. No Slack."
+              continue
             fi
 
             clean="${subject% \[upptime\]}"
@@ -169,6 +187,13 @@ jobs:
               failed=$((failed + 1))
             fi
           done <<< "${changes}"
+          if [ "${pending_changes}" -gt 0 ]; then
+            git config user.name "Upptime Bot"
+            git config user.email "73812536+upptime-bot@users.noreply.github.com"
+            git commit -m "alert markers updated [skip ci] [marker]"
+            git pull --rebase origin master --quiet || true
+            git push origin HEAD:master
+          fi
           if [ "${failed}" -gt 0 ]; then
             exit 1
           fi

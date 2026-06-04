@@ -1,0 +1,117 @@
+# ---------------------------------------------------------------------------
+# Confirm Down Alerts — defer-and-confirm Slack notifier
+# ---------------------------------------------------------------------------
+# Pairs with uptime.yml / uptime-playwright.yml. When those workflows detect
+# a `code: 0` down flip, they write a marker to .alerts/pending/<slug>.yml
+# and skip Slack. This workflow runs offset from the uptime cron (minute 2,
+# 7, 12...) and re-reads current history/<slug>.yml. If site is still down
+# after ~6 min, ping Slack. If recovered, silently drop the marker.
+#
+# COMMIT TAG: all commits from this workflow MUST end in [marker] (NOT
+# [upptime]) so the uptime notify grep `\[upptime\]$` cannot match and
+# create an infinite Slack loop.
+# ---------------------------------------------------------------------------
+
+name: Confirm Down Alerts
+
+on:
+  schedule:
+    - cron: "2-57/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: confirm-alerts
+  cancel-in-progress: false
+
+jobs:
+  confirm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Confirm pending down alerts
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          markers=(.alerts/pending/*.yml)
+          if [ ${#markers[@]} -eq 0 ]; then
+            echo "No pending markers — nothing to confirm."
+            exit 0
+          fi
+
+          git fetch origin master --quiet
+          now_ts=$(date -u +%s)
+          AGE_THRESHOLD=360   # 6 minutes
+          STALE_THRESHOLD=7200 # 2 hours — force-resolve
+
+          changed=0
+          failed=0
+          for marker in "${markers[@]}"; do
+            slug=$(basename "$marker" .yml)
+            first_seen=$(yq -r '.first_seen' "$marker")
+            subject=$(yq -r '.subject' "$marker")
+            commit_url=$(yq -r '.commit_url' "$marker")
+            seen_ts=$(date -u -d "$first_seen" +%s)
+            age=$((now_ts - seen_ts))
+
+            echo "[check] slug=$slug age=${age}s"
+
+            if [ "$age" -lt "$AGE_THRESHOLD" ]; then
+              echo "[wait] $slug — age ${age}s < ${AGE_THRESHOLD}s. Leaving marker."
+              continue
+            fi
+
+            # Read current status from origin/master (post any concurrent uptime tick).
+            current_status=$(git show "origin/master:history/${slug}.yml" 2>/dev/null \
+              | grep -E '^status:' | awk '{print $2}' || echo unknown)
+
+            if [ "$current_status" = "up" ]; then
+              echo "[resolve] $slug — recovered. Silent delete marker."
+              git rm -f "$marker"
+              changed=1
+              continue
+            fi
+
+            if [ "$age" -ge "$STALE_THRESHOLD" ]; then
+              echo "[stale] $slug — marker >${STALE_THRESHOLD}s old, force-resolving."
+              git rm -f "$marker"
+              changed=1
+              continue
+            fi
+
+            # Still down — ping Slack now.
+            clean="${subject% \[upptime\]}"
+            clean="${clean% \[skip ci\]}"
+            mention="<!channel> "
+            payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST "${SLACK_WEBHOOK_URL}" \
+              -H "Content-Type: application/json" \
+              -d "${payload}")
+            echo "[notify-confirmed] ${clean} → HTTP ${http_code}"
+            if [ "${http_code}" != "200" ]; then
+              failed=$((failed + 1))
+            else
+              git rm -f "$marker"
+              changed=1
+            fi
+          done
+
+          if [ "$changed" -gt 0 ]; then
+            git config user.name "Upptime Bot"
+            git config user.email "73812536+upptime-bot@users.noreply.github.com"
+            git commit -m "confirm-alerts: resolve markers [skip ci] [marker]"
+            git pull --rebase origin master --quiet || true
+            git push origin HEAD:master
+          fi
+
+          if [ "$failed" -gt 0 ]; then
+            exit 1
+          fi

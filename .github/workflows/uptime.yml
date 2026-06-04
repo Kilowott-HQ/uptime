@@ -133,6 +133,11 @@ jobs:
             fi
 
             # code:0 transient gate — re-probe before alerting on network failures.
+            # Skip on probe success (2xx/3xx) OR probe network-failure (000):
+            # 000 means runner→origin still unreachable. Either origin recovered
+            # already, or path/runner-side issue — Upstream Issue still opens
+            # so real outages remain visible in GitHub Issues even when quiet.
+            # Real 4xx/5xx down pings immediately (new_code != 0 bypasses gate).
             new_status=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
               | grep -E '^\+status:' | head -1 | awk '{print $2}')
             new_code=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
@@ -143,8 +148,9 @@ jobs:
               probe_code=$(curl -sIL -o /dev/null -w "%{http_code}" --max-time 15 \
                 -A "Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)" \
                 "$url" || echo 000)
-              if echo "${probe_code}" | grep -qE '^[23]..$'; then
-                echo "[skip] $subject — code:0 in commit but live verify returned ${probe_code} (transient). Suppressing Slack."
+              echo "[gate] sha=$sha slug=$slug_file new_status=$new_status new_code=$new_code probe_code=$probe_code"
+              if echo "${probe_code}" | grep -qE '^(000|[23]..)$'; then
+                echo "[skip] $subject — code:0 + probe=${probe_code}. Suppressing Slack (transient or runner→origin unreachable)."
                 continue
               fi
             fi

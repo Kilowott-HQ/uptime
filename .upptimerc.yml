@@ -85,14 +85,6 @@ sites:
   - client-pauljohn
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
-- name: Fomo
-  url: https://fomo.no/
-  tags:
-  - production
-  - client-fomo
-  - playwright
-  headers:
-  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

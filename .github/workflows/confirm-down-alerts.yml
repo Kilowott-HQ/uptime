@@ -104,9 +104,10 @@ jobs:
               http_code=200
             else
               http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+                --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
                 -X POST "${SLACK_WEBHOOK_URL}" \
                 -H "Content-Type: application/json" \
-                -d "${payload}")
+                -d "${payload}" || echo "000")
             fi
             echo "[notify-confirmed] ${clean} → HTTP ${http_code}"
             if [ "${http_code}" != "200" ]; then

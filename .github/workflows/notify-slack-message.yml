@@ -1,0 +1,62 @@
+# ---------------------------------------------------------------------------
+# Notify Slack — manual one-off ping
+# ---------------------------------------------------------------------------
+# Manual replay utility for ops. Use when an automated notify step lost a
+# ping (e.g. Azure→Slack curl timeout) and the channel needs the message
+# delivered out-of-band.
+#
+# Posts the supplied message verbatim, prefixed with @channel and ending
+# with the supplied commit URL (optional).
+# ---------------------------------------------------------------------------
+
+name: Notify Slack — manual message
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Slack message text (e.g. "🟩 Paul John Caffeine is up (200 in 274 ms)")'
+        required: true
+        type: string
+      commit_url:
+        description: 'Commit URL to link below the message (optional)'
+        required: false
+        default: ''
+        type: string
+      mention_channel:
+        description: 'Prefix with <!channel>'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: POST to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          MESSAGE: ${{ inputs.message }}
+          COMMIT_URL: ${{ inputs.commit_url }}
+          MENTION: ${{ inputs.mention_channel }}
+        run: |
+          set -euo pipefail
+          prefix=""
+          if [ "$MENTION" = "true" ]; then prefix="<!channel> "; fi
+          if [ -n "$COMMIT_URL" ]; then
+            text=$(printf '%s*%s*\n%s' "$prefix" "$MESSAGE" "$COMMIT_URL")
+          else
+            text=$(printf '%s*%s*' "$prefix" "$MESSAGE")
+          fi
+          payload=$(jq -n --arg text "$text" '{"text": $text}')
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+            -X POST "${SLACK_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d "${payload}" || echo "000")
+          echo "[notify] ${MESSAGE} → HTTP ${http_code}"
+          if [ "${http_code}" != "200" ]; then
+            exit 1
+          fi

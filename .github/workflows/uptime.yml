@@ -134,11 +134,11 @@ jobs:
               continue
             fi
 
-            # code:0 defer-and-confirm — write marker, skip Slack until confirm-down-alerts.yml
+            # Transient defer-and-confirm — write marker, skip Slack until confirm-down-alerts.yml
             # verifies the site is still down after one cron tick (~6 min).
-            # Real 4xx/5xx (code != 0) bypass this gate and ping immediately below.
-            # Recovery (status up) deletes any matching marker (suppresses recovery ping
-            # if no down was issued — keeps Slack silent for true transients).
+            # Defers code:0 (network failure) AND any 5xx (502/503/504/etc — typically
+            # transient origin/CDN errors). 4xx (real client-side errors) bypass and
+            # ping immediately. Recovery (status up) deletes any matching marker.
             new_status=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
               | grep -E '^\+status:' | head -1 | awk '{print $2}')
             new_code=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
@@ -148,7 +148,7 @@ jobs:
             marker_path=".alerts/pending/${slug}.yml"
             echo "[gate] sha=$sha slug=$slug new_status=$new_status new_code=$new_code"
 
-            if [ "${new_status}" = "down" ] && [ "${new_code}" = "0" ]; then
+            if [ "${new_status}" = "down" ] && echo "${new_code}" | grep -qE '^(0|5[0-9][0-9])$'; then
               # Defer. Write marker, no Slack yet.
               first_seen=$(git show -s --format=%cI "$sha")
               url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}')

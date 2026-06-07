@@ -6,6 +6,7 @@
 # update-template.yml has been deleted to prevent regeneration.
 #   - code:0 transient gate (re-probes the URL once before Slack alerts)
 #   - code:0 down flips defer to confirm-down-alerts.yml (write marker, no Slack)
+#   - self-heal .upptimerc.yml after upptime-monitor strips playwright sites
 #
 # 🔼 Upptime @v1.41.3
 
@@ -37,6 +38,13 @@ jobs:
       - name: Capture starting SHA
         id: pre_sha
         run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Save canonical .upptimerc.yml
+        # Snapshot the full site list BEFORE the strip step mutates it. The
+        # follow-up "Restore .upptimerc.yml" step at the end of the job uses
+        # this to undo any committed strip that upptime-monitor@v1.41.3 made
+        # when it auto-pushed the working-tree state.
+        run: cp .upptimerc.yml /tmp/upptimerc.canonical.yml
 
       - name: Strip Playwright-checked sites from .upptimerc.yml
         # Gutta + Utviklingscoach are tagged `playwright` — they block GitHub Actions
@@ -198,3 +206,34 @@ jobs:
           if [ "${failed}" -gt 0 ]; then
             exit 1
           fi
+
+      - name: Restore .upptimerc.yml if upptime-monitor stripped it
+        # The strip step earlier in this job mutates .upptimerc.yml so
+        # upptime-monitor skips playwright-tagged sites. The action's
+        # internal commit step then pushes that stripped state to master,
+        # progressively losing playwright sites. This step re-applies the
+        # canonical snapshot saved before strip and commits a follow-up
+        # restore if drift exists. Uses [marker] (not [upptime]) so the
+        # notify-step grep `\[upptime\]$` cannot match.
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/upptimerc.canonical.yml ]; then
+            echo "canonical snapshot missing — skipping restore"
+            exit 0
+          fi
+          git fetch origin master --quiet
+          # Pull origin's current .upptimerc.yml into working tree (post-monitor + post-reconcile state)
+          git checkout origin/master -- .upptimerc.yml
+          # Overwrite with the canonical snapshot we saved before the strip
+          cp /tmp/upptimerc.canonical.yml .upptimerc.yml
+          if git diff --quiet -- .upptimerc.yml; then
+            echo "No drift between origin/master and canonical — config intact."
+            exit 0
+          fi
+          git config user.name "Upptime Bot"
+          git config user.email "73812536+upptime-bot@users.noreply.github.com"
+          git add .upptimerc.yml
+          git commit -m "config: restore playwright sites stripped by upptime-monitor [skip ci] [marker]"
+          git pull --rebase origin master --quiet || true
+          git push origin HEAD:master

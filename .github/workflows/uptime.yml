@@ -228,12 +228,21 @@ jobs:
           # Overwrite with the canonical snapshot we saved before the strip
           cp /tmp/upptimerc.canonical.yml .upptimerc.yml
           if git diff --quiet -- .upptimerc.yml; then
-            echo "No drift between origin/master and canonical — config intact."
+            echo "No drift between working tree and index — config intact."
             exit 0
           fi
           git config user.name "Upptime Bot"
           git config user.email "73812536+upptime-bot@users.noreply.github.com"
           git add .upptimerc.yml
+          # Guard against the cosmetic case: working tree differed from index
+          # (because checkout pulled origin/master) but after staging the
+          # canonical, the result equals local HEAD — nothing to commit.
+          # Happens on ticks where upptime-monitor didn't commit AND a recent
+          # push to .upptimerc.yml just synced master to the canonical state.
+          if git diff --quiet --cached HEAD -- .upptimerc.yml; then
+            echo "Staged content matches HEAD — already in sync with current commit."
+            exit 0
+          fi
           git commit -m "config: restore playwright sites stripped by upptime-monitor [skip ci] [marker]"
           git pull --rebase origin master --quiet || true
           git push origin HEAD:master

@@ -85,38 +85,6 @@ sites:
   - client-pauljohn
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
-- name: Gutta
-  url: https://gutta.no/
-  tags:
-  - production
-  - client-gutta
-  - playwright
-  headers:
-  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
-- name: Utviklingscoach
-  url: https://utviklingscoach.no/
-  tags:
-  - production
-  - client-utviklingscoach
-  - playwright
-  headers:
-  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
-- name: Fomo
-  url: https://fomo.no/
-  tags:
-  - production
-  - client-fomo
-  - playwright
-  headers:
-  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
-- name: Ways Trafikkskole
-  url: https://ways-trafikkskole.no/
-  tags:
-  - production
-  - client-ways
-  - playwright
-  headers:
-  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

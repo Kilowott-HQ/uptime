@@ -117,6 +117,28 @@ sites:
   - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Norweh
+  url: https://norweh.com/
+  tags:
+  - production
+  - client-norweh
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Norisma
+  url: https://norisma.no/
+  tags:
+  - production
+  - client-norisma
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Norweh Canada
+  url: https://norweh.ca/
+  tags:
+  - production
+  - client-norweh
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

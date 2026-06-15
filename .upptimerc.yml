@@ -129,6 +129,7 @@ sites:
   tags:
   - production
   - client-norisma
+  - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Norweh Canada

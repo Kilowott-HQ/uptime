@@ -61,11 +61,11 @@
     "icon": "https://icons.duckduckgo.com/ip3/allgrid.com.ico",
     "slug": "allgrid",
     "status": "up",
-    "uptime": "48.01%",
+    "uptime": "48.19%",
     "uptimeDay": "100.00%",
     "uptimeWeek": "99.93%",
-    "uptimeMonth": "34.92%",
-    "uptimeYear": "48.01%",
+    "uptimeMonth": "35.64%",
+    "uptimeYear": "48.19%",
     "time": 2640,
     "timeDay": 1378,
     "timeWeek": 1731,
@@ -123,18 +123,18 @@
     "icon": "https://icons.duckduckgo.com/ip3/ilovepolebuildings.com.ico",
     "slug": "i-love-pole-buildings",
     "status": "down",
-    "uptime": "100.00%",
-    "uptimeDay": "99.89%",
-    "uptimeWeek": "99.98%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "uptime": "99.64%",
+    "uptimeDay": "78.00%",
+    "uptimeWeek": "96.86%",
+    "uptimeMonth": "99.28%",
+    "uptimeYear": "99.64%",
     "time": 242,
     "timeDay": 230,
     "timeWeek": 287,
     "timeMonth": 194,
     "timeYear": 242,
     "dailyMinutesDown": {
-      "2026-06-20": 2
+      "2026-06-20": 317
     }
   },
   {
@@ -143,18 +143,18 @@
     "icon": "https://icons.duckduckgo.com/ip3/septic-masters.com.ico",
     "slug": "septic-masters",
     "status": "down",
-    "uptime": "100.00%",
-    "uptimeDay": "99.90%",
-    "uptimeWeek": "99.99%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "uptime": "99.64%",
+    "uptimeDay": "78.02%",
+    "uptimeWeek": "96.86%",
+    "uptimeMonth": "99.28%",
+    "uptimeYear": "99.64%",
     "time": 239,
     "timeDay": 233,
     "timeWeek": 276,
     "timeMonth": 223,
     "timeYear": 239,
     "dailyMinutesDown": {
-      "2026-06-20": 1
+      "2026-06-20": 317
     }
   },
   {
@@ -163,18 +163,18 @@
     "icon": "https://icons.duckduckgo.com/ip3/bildabarn.com.ico",
     "slug": "build-a-barn",
     "status": "down",
-    "uptime": "100.00%",
-    "uptimeDay": "99.92%",
-    "uptimeWeek": "99.99%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "uptime": "99.64%",
+    "uptimeDay": "78.03%",
+    "uptimeWeek": "96.86%",
+    "uptimeMonth": "99.28%",
+    "uptimeYear": "99.64%",
     "time": 257,
     "timeDay": 233,
     "timeWeek": 256,
     "timeMonth": 206,
     "timeYear": 257,
     "dailyMinutesDown": {
-      "2026-06-20": 1
+      "2026-06-20": 316
     }
   },
   {
@@ -183,18 +183,18 @@
     "icon": "https://icons.duckduckgo.com/ip3/www.itrustquality.com.ico",
     "slug": "i-trust-quality",
     "status": "down",
-    "uptime": "100.00%",
-    "uptimeDay": "99.94%",
-    "uptimeWeek": "99.99%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "uptime": "99.64%",
+    "uptimeDay": "78.05%",
+    "uptimeWeek": "96.86%",
+    "uptimeMonth": "99.28%",
+    "uptimeYear": "99.64%",
     "time": 304,
     "timeDay": 174,
     "timeWeek": 301,
     "timeMonth": 282,
     "timeYear": 304,
     "dailyMinutesDown": {
-      "2026-06-20": 1
+      "2026-06-20": 316
     }
   },
   {
@@ -203,18 +203,18 @@
     "icon": "https://icons.duckduckgo.com/ip3/dryerventguardian.com.ico",
     "slug": "dryer-vent-guardian",
     "status": "down",
-    "uptime": "100.00%",
-    "uptimeDay": "99.95%",
-    "uptimeWeek": "99.99%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "uptime": "99.64%",
+    "uptimeDay": "78.06%",
+    "uptimeWeek": "96.87%",
+    "uptimeMonth": "99.28%",
+    "uptimeYear": "99.64%",
     "time": 221,
     "timeDay": 195,
     "timeWeek": 271,
     "timeMonth": 176,
     "timeYear": 221,
     "dailyMinutesDown": {
-      "2026-06-20": 1
+      "2026-06-20": 316
     }
   },
   {
@@ -223,18 +223,18 @@
     "icon": "https://icons.duckduckgo.com/ip3/callbigred.com.ico",
     "slug": "call-big-red",
     "status": "down",
-    "uptime": "100.00%",
-    "uptimeDay": "99.97%",
-    "uptimeWeek": "100.00%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "uptime": "99.64%",
+    "uptimeDay": "78.08%",
+    "uptimeWeek": "96.87%",
+    "uptimeMonth": "99.28%",
+    "uptimeYear": "99.64%",
     "time": 886,
     "timeDay": 740,
     "timeWeek": 903,
     "timeMonth": 854,
     "timeYear": 886,
     "dailyMinutesDown": {
-      "2026-06-20": 0
+      "2026-06-20": 316
     }
   },
   {
@@ -243,18 +243,18 @@
     "icon": "https://icons.duckduckgo.com/ip3/woodrockengineering.com.ico",
     "slug": "wood-rock-engineering",
     "status": "down",
-    "uptime": "100.00%",
-    "uptimeDay": "99.98%",
-    "uptimeWeek": "100.00%",
-    "uptimeMonth": "100.00%",
-    "uptimeYear": "100.00%",
+    "uptime": "99.64%",
+    "uptimeDay": "78.10%",
+    "uptimeWeek": "96.87%",
+    "uptimeMonth": "99.28%",
+    "uptimeYear": "99.64%",
     "time": 251,
     "timeDay": 165,
     "timeWeek": 292,
     "timeMonth": 216,
     "timeYear": 251,
     "dailyMinutesDown": {
-      "2026-06-20": 0
+      "2026-06-20": 315
     }
   },
   {
@@ -269,7 +269,7 @@
     "uptimeMonth": "99.67%",
     "uptimeYear": "99.67%",
     "time": 412,
-    "timeDay": 409,
+    "timeDay": 401,
     "timeWeek": 476,
     "timeMonth": 412,
     "timeYear": 412,
@@ -308,9 +308,9 @@
     "url": "https://norweh.ca/",
     "icon": "https://icons.duckduckgo.com/ip3/norweh.ca.ico",
     "slug": "norweh-canada",
-    "status": "up",
+    "status": "down",
     "uptime": "99.94%",
-    "uptimeDay": "100.00%",
+    "uptimeDay": "99.99%",
     "uptimeWeek": "99.94%",
     "uptimeMonth": "99.94%",
     "uptimeYear": "99.94%",
@@ -320,6 +320,7 @@
     "timeMonth": 1064,
     "timeYear": 1064,
     "dailyMinutesDown": {
+      "2026-06-20": 0,
       "2026-06-16": 4
     }
   }

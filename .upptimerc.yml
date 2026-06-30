@@ -210,6 +210,30 @@ sites:
   - client-cakemyday
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Insynk
+  url: https://insynk.no/
+  tags:
+  - production
+  - client-insynk
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Aloe Vera Shop
+  url: https://aloeverashop.no/
+  tags:
+  - production
+  - client-aloeverashop
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Unfluenser
+  url: https://unfluenser.no/
+  tags:
+  - production
+  - client-unfluenser
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

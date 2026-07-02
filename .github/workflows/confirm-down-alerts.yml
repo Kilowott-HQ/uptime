@@ -43,6 +43,10 @@ jobs:
       - name: Confirm pending down alerts
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          TWILIO_WHATSAPP_TO: ${{ secrets.TWILIO_WHATSAPP_TO }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -65,6 +69,7 @@ jobs:
             first_seen=$(yq -r '.first_seen' "$marker")
             subject=$(yq -r '.subject' "$marker")
             commit_url=$(yq -r '.commit_url' "$marker")
+            new_status=$(yq -r '.new_status // "down"' "$marker")
             seen_ts=$(date -u -d "$first_seen" +%s)
             age=$((now_ts - seen_ts))
 
@@ -116,6 +121,17 @@ jobs:
               git rm -f "$marker"
               changed=1
             fi
+
+            # WhatsApp alert on confirmed down (secondary channel, log-only on failure)
+            wa_body="${slug} ${new_status} since ${first_seen}"
+            wa_http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+              -X POST "https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json" \
+              -u "${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}" \
+              --data-urlencode "From=${TWILIO_WHATSAPP_FROM}" \
+              --data-urlencode "To=${TWILIO_WHATSAPP_TO}" \
+              --data-urlencode "Body=${wa_body}" || echo "000")
+            echo "[whatsapp] ${slug} ${new_status} → HTTP ${wa_http_code}"
           done
 
           if [ "$changed" -gt 0 ]; then

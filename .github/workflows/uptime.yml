@@ -166,6 +166,7 @@ jobs:
                 echo "subject: ${subject}"
                 echo "commit_url: https://github.com/${{ github.repository }}/commit/${sha}"
                 echo "first_seen: ${first_seen}"
+                echo "new_status: ${new_status}"
               } > "$marker_path"
               git add "$marker_path"
               pending_changes=1

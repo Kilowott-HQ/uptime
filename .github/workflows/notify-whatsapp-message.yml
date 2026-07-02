@@ -1,0 +1,45 @@
+name: Notify WhatsApp — manual replay
+on:
+  workflow_dispatch:
+    inputs:
+      site_name:
+        description: 'Site slug (matches history/<slug>.yml)'
+        required: true
+        type: string
+      status:
+        description: 'Site status'
+        required: true
+        type: choice
+        options: [down, up]
+      timestamp:
+        description: 'Outage-start timestamp UTC (blank = now)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: POST to Twilio WhatsApp
+        env:
+          TWILIO_ACCOUNT_SID:   ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN:    ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          TWILIO_WHATSAPP_TO:   ${{ secrets.TWILIO_WHATSAPP_TO }}
+          SITE_NAME: ${{ inputs.site_name }}
+          STATUS:    ${{ inputs.status }}
+          TS_INPUT:  ${{ inputs.timestamp }}
+        run: |
+          set -euo pipefail
+          timestamp="${TS_INPUT:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}"
+          wa_body="${SITE_NAME} ${STATUS} since ${timestamp}"
+          wa_http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+            -X POST "https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json" \
+            -u "${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}" \
+            --data-urlencode "From=${TWILIO_WHATSAPP_FROM}" \
+            --data-urlencode "To=${TWILIO_WHATSAPP_TO}" \
+            --data-urlencode "Body=${wa_body}" || echo "000")
+          echo "[whatsapp] ${SITE_NAME} ${STATUS} → HTTP ${wa_http_code}"

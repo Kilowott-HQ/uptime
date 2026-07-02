@@ -117,6 +117,10 @@ jobs:
         if: always()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          TWILIO_WHATSAPP_TO: ${{ secrets.TWILIO_WHATSAPP_TO }}
         run: |
           START_SHA="${{ steps.pre_sha.outputs.sha }}"
           git fetch origin --quiet
@@ -196,6 +200,18 @@ jobs:
             if [ "${http_code}" != "200" ]; then
               failed=$((failed + 1))
             fi
+
+            # WhatsApp alert (secondary channel, log-only on failure)
+            timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            wa_body="${slug} ${new_status} since ${timestamp}"
+            wa_http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+              -X POST "https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json" \
+              -u "${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}" \
+              --data-urlencode "From=${TWILIO_WHATSAPP_FROM}" \
+              --data-urlencode "To=${TWILIO_WHATSAPP_TO}" \
+              --data-urlencode "Body=${wa_body}" || echo "000")
+            echo "[whatsapp] ${slug} ${new_status} → HTTP ${wa_http_code}"
           done <<< "${changes}"
           if [ "${pending_changes}" -gt 0 ]; then
             git config user.name "Upptime Bot"

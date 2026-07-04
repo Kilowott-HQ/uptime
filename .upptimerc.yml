@@ -24,7 +24,7 @@ sites:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Allgrid
   url: https://allgrid.com/
-  __dangerous__body_down_if_text_missing: Slik fungerer det
+  __dangerous__body_down_if_text_missing: Allgrid
   tags:
   - production
   - client-allgrid

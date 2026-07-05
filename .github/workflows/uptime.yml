@@ -188,9 +188,10 @@ jobs:
 
             clean="${subject% \[upptime\]}"
             clean="${clean% \[skip ci\]}"
-            commit_url="https://github.com/${{ github.repository }}/commit/${sha}"
             mention="<!channel> "
-            payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
+            flip_iso=$(git show -s --format=%cI "$sha")
+            flip_time=$(date -u -d "$flip_iso" +"%Y-%m-%d %H:%M:%S UTC")
+            payload=$(jq -n --arg text "$(printf '%s*%s*\nDetected: %s' "${mention}" "${clean}" "${flip_time}")" '{"text": $text}')
             http_code=$(curl -s -o /dev/null -w "%{http_code}" \
               --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
               -X POST "${SLACK_WEBHOOK_URL}" \

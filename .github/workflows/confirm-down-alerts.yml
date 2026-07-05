@@ -102,9 +102,10 @@ jobs:
             clean="${subject% \[upptime\]}"
             clean="${clean% \[skip ci\]}"
             mention="<!channel> "
-            payload=$(jq -n --arg text "$(printf '%s*%s*\n%s' "${mention}" "${clean}" "${commit_url}")" '{"text": $text}')
+            first_seen_human=$(date -u -d "$first_seen" +"%Y-%m-%d %H:%M:%S UTC")
+            payload=$(jq -n --arg text "$(printf '%s*%s*\nDetected: %s' "${mention}" "${clean}" "${first_seen_human}")" '{"text": $text}')
             if [ "${{ inputs.dry_run }}" = "true" ]; then
-              echo "[DRY-RUN] would POST to Slack: ${clean} | commit_url=${commit_url}"
+              echo "[DRY-RUN] would POST to Slack: ${clean} | first_seen=${first_seen_human}"
               echo "[DRY-RUN] payload: ${payload}"
               http_code=200
             else

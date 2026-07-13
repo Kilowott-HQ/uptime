@@ -242,6 +242,38 @@ sites:
   - client-vingtor
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Hotel Continental
+  url: https://hotelcontinental.no/
+  tags:
+  - production
+  - client-hotelcontinental
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Intervaults
+  url: https://intervaults.com/
+  tags:
+  - production
+  - client-intervaults
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Gutta Fra Havet
+  url: https://guttafrahavet.no/
+  tags:
+  - production
+  - client-guttafrahavet
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Coo
+  url: https://coo.no/
+  tags:
+  - production
+  - client-coo
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

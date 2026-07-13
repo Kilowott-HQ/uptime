@@ -7,6 +7,15 @@
 # 7, 12...) and re-reads current history/<slug>.yml. If site is still down
 # after ~6 min, ping Slack. If recovered, silently drop the marker.
 #
+# TWO ANTI-FALSE-POSITIVE GATES before Slack fires:
+#   1. External re-probe (check-host.net multi-node) — the runner's view
+#      alone is not enough. If any external node sees UP, silent-resolve
+#      (runner-blocked, not real outage). Handles Hostinger/CDN blocking
+#      Azure IP range. Async: request → wait 8s → poll result.
+#   2. Cooldown (COOLDOWN_SECONDS) — after Slack fires for slug X, block
+#      further down pings for X within window. Prevents repeat noise from
+#      a flapping site. Recovery ("up") pings unaffected.
+#
 # COMMIT TAG: all commits from this workflow MUST end in [marker] (NOT
 # [upptime]) so the uptime notify grep `\[upptime\]$` cannot match and
 # create an infinite Slack loop.
@@ -58,9 +67,11 @@ jobs:
           fi
 
           git fetch origin master --quiet
+          mkdir -p .alerts/recent-alerts
           now_ts=$(date -u +%s)
-          AGE_THRESHOLD=360   # 6 minutes
-          STALE_THRESHOLD=7200 # 2 hours — force-resolve
+          AGE_THRESHOLD=360        # 6 minutes — min age before considering Slack
+          STALE_THRESHOLD=7200     # 2 hours — force-resolve stuck markers
+          COOLDOWN_SECONDS=1800    # 30 minutes — post-ping quiet window per slug
 
           changed=0
           failed=0
@@ -70,6 +81,7 @@ jobs:
             subject=$(yq -r '.subject' "$marker")
             commit_url=$(yq -r '.commit_url' "$marker")
             new_status=$(yq -r '.new_status // "down"' "$marker")
+            url=$(yq -r '.url' "$marker")
             seen_ts=$(date -u -d "$first_seen" +%s)
             age=$((now_ts - seen_ts))
 
@@ -85,7 +97,7 @@ jobs:
               | grep -E '^status:' | awk '{print $2}' || echo unknown)
 
             if [ "$current_status" = "up" ]; then
-              echo "[resolve] $slug — recovered. Silent delete marker."
+              echo "[resolve] $slug — recovered per history. Silent delete marker."
               git rm -f "$marker"
               changed=1
               continue
@@ -98,7 +110,55 @@ jobs:
               continue
             fi
 
-            # Still down — ping Slack now.
+            # Gate 1: external re-probe via check-host.net. Multi-node, no auth.
+            # Rationale: our Azure runner may be firewall-blocked (Hostinger /
+            # CDN Bot Management etc) while the site is genuinely reachable from
+            # the wider internet. If ANY external node sees UP with 2xx HTTP,
+            # we treat the runner-view as unreliable and silent-resolve.
+            # Fail-open: if the external check itself errors, proceed to Gate 2.
+            url_enc=$(printf %s "$url" | jq -sRr @uri)
+            req_json=$(curl -s --max-time 15 -H "Accept: application/json" \
+              "https://check-host.net/check-http?host=${url_enc}&max_nodes=3" || echo '{}')
+            req_id=$(echo "$req_json" | jq -r '.request_id // empty' 2>/dev/null || echo "")
+            ext_up=0
+            ext_reported=0
+            if [ -n "$req_id" ]; then
+              sleep 8
+              result_json=$(curl -s --max-time 15 -H "Accept: application/json" \
+                "https://check-host.net/check-result/${req_id}" || echo '{}')
+              # Each node's value is either null (not reported) or an array like
+              # [[success, response_time, "OK", "200", "ip"]]. Count node-results
+              # where success==1 AND http status starts with 2.
+              ext_up=$(echo "$result_json" | jq '[.[] | select(. != null) | .[0] | select(.[0]==1 and (.[3] // "" | tostring | startswith("2")))] | length' 2>/dev/null || echo 0)
+              ext_reported=$(echo "$result_json" | jq '[.[] | select(. != null)] | length' 2>/dev/null || echo 0)
+            fi
+            echo "[external-probe] $slug up=${ext_up} reported=${ext_reported} req_id=${req_id:-none}"
+            if [ "$ext_up" -gt 0 ]; then
+              echo "[external-up] $slug — external sees UP. Runner-blocked, not real outage. Silent-resolve."
+              git rm -f "$marker"
+              changed=1
+              continue
+            fi
+
+            # Gate 2: cooldown. If we already fired a Slack down-ping for this
+            # slug in the last COOLDOWN_SECONDS, suppress refire. Recovery pings
+            # are unaffected — this gate only covers repeat *down* alerts.
+            cooldown_file=".alerts/recent-alerts/${slug}.yml"
+            if [ -f "$cooldown_file" ]; then
+              last_alerted=$(yq -r '.alerted_at' "$cooldown_file" 2>/dev/null || echo "")
+              if [ -n "$last_alerted" ]; then
+                last_ts=$(date -u -d "$last_alerted" +%s 2>/dev/null || echo 0)
+                since_last=$((now_ts - last_ts))
+                if [ "$since_last" -lt "$COOLDOWN_SECONDS" ]; then
+                  echo "[cooldown] $slug — last alerted ${since_last}s ago (< ${COOLDOWN_SECONDS}s). Suppress refire. Silent-resolve marker."
+                  git rm -f "$marker"
+                  changed=1
+                  continue
+                fi
+              fi
+            fi
+
+            # Still down, external agrees down, cooldown clear — ping Slack now.
             clean="${subject% \[upptime\]}"
             clean="${clean% \[skip ci\]}"
             mention="<!channel> "
@@ -119,6 +179,10 @@ jobs:
             if [ "${http_code}" != "200" ]; then
               failed=$((failed + 1))
             else
+              # Record alert time for cooldown gate on future flapping cycles.
+              alerted_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+              printf 'slug: %s\nurl: %s\nalerted_at: %s\n' "$slug" "$url" "$alerted_at" > ".alerts/recent-alerts/${slug}.yml"
+              git add ".alerts/recent-alerts/${slug}.yml"
               git rm -f "$marker"
               changed=1
             fi
@@ -134,6 +198,22 @@ jobs:
               --data-urlencode "Body=${wa_body}" || echo "000")
             echo "[whatsapp] ${slug} ${new_status} → HTTP ${wa_http_code}"
           done
+
+          # Purge cooldown records older than 24h — bounds the directory size.
+          # Site count is O(50); files are tiny; this keeps the tree tidy.
+          if compgen -G ".alerts/recent-alerts/*.yml" > /dev/null; then
+            purge_cutoff=$((now_ts - 86400))
+            for f in .alerts/recent-alerts/*.yml; do
+              rec_at=$(yq -r '.alerted_at // empty' "$f" 2>/dev/null || echo "")
+              [ -z "$rec_at" ] && continue
+              rec_ts=$(date -u -d "$rec_at" +%s 2>/dev/null || echo 0)
+              if [ "$rec_ts" -lt "$purge_cutoff" ]; then
+                echo "[purge] cooldown record $(basename "$f" .yml) — ${rec_at} > 24h old"
+                git rm -f "$f"
+                changed=1
+              fi
+            done
+          fi
 
           if [ "$changed" -gt 0 ]; then
             git config user.name "Upptime Bot"

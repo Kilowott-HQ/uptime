@@ -411,19 +411,19 @@
     "url": "https://intervaults.com/",
     "icon": "https://icons.duckduckgo.com/ip3/intervaults.com.ico",
     "slug": "intervaults",
-    "status": "down",
-    "uptime": "90.56%",
-    "uptimeDay": "90.56%",
-    "uptimeWeek": "90.56%",
-    "uptimeMonth": "90.56%",
-    "uptimeYear": "90.56%",
-    "time": 1462,
-    "timeDay": 1462,
-    "timeWeek": 1462,
-    "timeMonth": 1462,
-    "timeYear": 1462,
+    "status": "up",
+    "uptime": "89.01%",
+    "uptimeDay": "89.01%",
+    "uptimeWeek": "89.01%",
+    "uptimeMonth": "89.01%",
+    "uptimeYear": "89.01%",
+    "time": 1461,
+    "timeDay": 1461,
+    "timeWeek": 1461,
+    "timeMonth": 1461,
+    "timeYear": 1461,
     "dailyMinutesDown": {
-      "2026-07-13": 26
+      "2026-07-13": 31
     }
   },
   {

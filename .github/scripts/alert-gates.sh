@@ -19,9 +19,27 @@
 # All functions are side-effecting via git (record/clear stage the file),
 # so callers must be running inside a checked-out repo with git identity.
 #
-# Retention: recent-alerts files are NOT auto-purged. They persist until a
-# paired recovery clears them (could be 24h+ for sustained outages). Bounded
-# by site count (O(50)); size cost is negligible.
+# STATE MODEL — .alerts/recent-alerts/<slug>.yml has two timestamps:
+#   alerted_at   — when we fired the "down" Slack ping. Never cleared until
+#                  the file is purged. Drives the cooldown check.
+#   recovered_at — set when the paired "up" recovery ping fires. Empty (or
+#                  missing) means we still owe a recovery. Drives pairing.
+#
+# TRANSITIONS:
+#   record_alert : create file, alerted_at=NOW, recovered_at empty
+#                  → subsequent DOWN suppressed by cooldown (alerted_at fresh)
+#                  → next UP fires recovery (has_pending_recovery true)
+#   clear_alert  : set recovered_at=NOW, KEEP file
+#                  → subsequent DOWN still suppressed (cooldown still counting
+#                    from alerted_at, not recovered_at)
+#                  → next UP suppressed (has_pending_recovery false)
+#   purge (in confirm-down-alerts): delete file when recovered_at set AND
+#                  alerted_at > 2 × COOLDOWN old. Frees state for a truly
+#                  new incident later.
+#
+# Result: exactly one down + one up Slack ping per outage incident, even
+# if the site flaps rapidly within the cooldown window. Two separate real
+# outages > 30 min apart each get their own down+up pair.
 # ---------------------------------------------------------------------------
 
 COOLDOWN_SECONDS_DEFAULT=1800  # 30 minutes
@@ -75,8 +93,10 @@ check_cooldown_active() {
 }
 
 # record_alert <slug> <url>
-# Called after a successful "down" Slack POST. Writes + stages the pairing
-# record so the corresponding "up" recovery can fire and clear it.
+# Called after a successful "down" Slack POST. Writes + stages the tracking
+# record with alerted_at=NOW and recovered_at empty (pairing pending).
+# Overwrites any prior record for the slug — a fresh alert starts a fresh
+# cooldown window from this moment.
 record_alert() {
   local slug="$1"
   local url="${2:-}"
@@ -86,24 +106,62 @@ record_alert() {
     echo "slug: ${slug}"
     echo "url: ${url}"
     echo "alerted_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "recovered_at:"
   } > "$file"
   git add "$file"
 }
 
 # has_pending_recovery <slug>
-# 0 if there's a recorded down-alert awaiting its paired recovery.
+# Returns 0 if there's an unrecovered down-alert (file exists AND
+# recovered_at is empty). Used by the up-flip path — fire recovery only
+# when we owe one.
 has_pending_recovery() {
   local slug="$1"
-  [ -f ".alerts/recent-alerts/${slug}.yml" ]
+  local file=".alerts/recent-alerts/${slug}.yml"
+  [ -f "$file" ] || return 1
+  local recovered
+  recovered=$(yq -r '.recovered_at // empty' "$file" 2>/dev/null || echo "")
+  [ -z "$recovered" ]
 }
 
 # clear_alert <slug>
-# Called after a successful "up" recovery Slack POST. Resets the pairing
-# state so a future down starts fresh.
+# Called after a successful "up" recovery Slack POST. Sets recovered_at
+# but KEEPS the file, so check_cooldown_active still finds alerted_at and
+# suppresses any near-term flap-back to down within the cooldown window.
 clear_alert() {
   local slug="$1"
   local file=".alerts/recent-alerts/${slug}.yml"
-  if [ -f "$file" ]; then
-    git rm -f "$file" 2>/dev/null || rm -f "$file"
+  [ -f "$file" ] || return 0
+  local recovered_at
+  recovered_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  if grep -q '^recovered_at:' "$file"; then
+    sed -i "s|^recovered_at:.*|recovered_at: ${recovered_at}|" "$file"
+  else
+    echo "recovered_at: ${recovered_at}" >> "$file"
   fi
+  git add "$file"
+}
+
+# purge_stale_alerts [max_age_seconds]
+# Deletes recent-alerts files where recovered_at is set AND alerted_at is
+# older than max_age. Keeps state for the full cooldown window post-recovery
+# so a flap-back still gets suppressed. Called from confirm-down-alerts.
+# Default max_age = 2 × COOLDOWN (1 hour).
+purge_stale_alerts() {
+  local max_age="${1:-3600}"
+  local now_ts
+  now_ts=$(date -u +%s)
+  local file rec_at alerted_at alerted_ts
+  for file in .alerts/recent-alerts/*.yml; do
+    [ -f "$file" ] || continue
+    rec_at=$(yq -r '.recovered_at // empty' "$file" 2>/dev/null || echo "")
+    [ -z "$rec_at" ] && continue  # still awaiting recovery — keep
+    alerted_at=$(yq -r '.alerted_at // empty' "$file" 2>/dev/null || echo "")
+    [ -z "$alerted_at" ] && continue
+    alerted_ts=$(date -u -d "$alerted_at" +%s 2>/dev/null || echo 0)
+    if [ $((now_ts - alerted_ts)) -gt "$max_age" ]; then
+      echo "[purge] $(basename "$file" .yml) — recovered + cooldown expired"
+      git rm -f "$file" 2>/dev/null || rm -f "$file"
+    fi
+  done
 }

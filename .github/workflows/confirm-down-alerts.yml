@@ -176,10 +176,13 @@ jobs:
             echo "[whatsapp] ${slug} ${new_status} → HTTP ${wa_http_code}"
           done
 
-          # NOTE: recent-alerts files are NOT auto-purged. They're the pairing
-          # state — cleared only when the corresponding "up" recovery fires
-          # (via uptime.yml notify path). A sustained outage could keep the
-          # file for 24h+; that's correct. Bounded by site count.
+          # Purge stale recent-alerts (files that already fired recovery AND
+          # whose cooldown window has passed). Keeps state alive long enough
+          # to suppress flap-back after recovery. Bounded by site count.
+          purge_stale_alerts 3600
+          if ! git diff --cached --quiet .alerts/recent-alerts/ 2>/dev/null; then
+            changed=1
+          fi
 
           if [ "$changed" -gt 0 ]; then
             git config user.name "Upptime Bot"

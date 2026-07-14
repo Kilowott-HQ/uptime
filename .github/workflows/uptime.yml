@@ -122,6 +122,8 @@ jobs:
           TWILIO_WHATSAPP_FROM: ${{ secrets.TWILIO_WHATSAPP_FROM }}
           TWILIO_WHATSAPP_TO: ${{ secrets.TWILIO_WHATSAPP_TO }}
         run: |
+          # shellcheck source=../scripts/alert-gates.sh
+          source .github/scripts/alert-gates.sh
           START_SHA="${{ steps.pre_sha.outputs.sha }}"
           git fetch origin --quiet
           changes=$(git log "${START_SHA}..origin/master" --pretty=format:"%H|%s" | grep -E '\[upptime\]$' | grep -v '|:' || true)
@@ -161,12 +163,12 @@ jobs:
             slug_file=$(git show --no-renames --name-only --format= "$sha" -- 'history/*.yml' | head -1)
             slug=$(basename "$slug_file" .yml)
             marker_path=".alerts/pending/${slug}.yml"
+            url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}' || echo "")
             echo "[gate] sha=$sha slug=$slug new_status=$new_status new_code=$new_code"
 
             if [ "${new_status}" = "down" ] && echo "${new_code}" | grep -qE '^(0|403|5[0-9][0-9])$'; then
               # Defer. Write marker, no Slack yet.
               first_seen=$(git show -s --format=%cI "$sha")
-              url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}')
               mkdir -p .alerts/pending
               {
                 echo "url: ${url}"
@@ -181,12 +183,36 @@ jobs:
               continue
             fi
 
-            if [ "${new_status}" = "up" ] && [ -f "$marker_path" ]; then
-              # Recovery before confirm fired → silent. Suppress recovery ping too.
-              git rm -f "$marker_path"
-              pending_changes=1
-              echo "[suppress] $subject — recovery before confirm tick. No Slack."
-              continue
+            # Up flip — pairing invariant. Fire recovery ONLY if the down was
+            # previously announced (pending marker OR recent-alerts record).
+            # If neither exists, the down was silent → recovery must also be
+            # silent (channel has many people; every orphan ping is costly).
+            if [ "${new_status}" = "up" ]; then
+              if [ -f "$marker_path" ]; then
+                git rm -f "$marker_path"
+                pending_changes=1
+                echo "[suppress] $subject — recovery before confirm tick. No Slack."
+                continue
+              fi
+              if ! has_pending_recovery "$slug"; then
+                echo "[suppress] $subject — no matching down alert was announced. Silent recovery."
+                continue
+              fi
+              # recent-alerts exists → down was fired → owe a recovery. Fall through.
+            fi
+
+            # Down flip with non-deferred code (401/404/429/etc). Apply the
+            # same gates as confirm-down-alerts before firing. Bias toward
+            # silence: only announce down if external agrees + no cooldown.
+            if [ "${new_status}" = "down" ]; then
+              if check_external_up "$url"; then
+                echo "[external-up] $slug — external sees UP. Runner-blocked, not real outage. No Slack."
+                continue
+              fi
+              if check_cooldown_active "$slug"; then
+                echo "[cooldown] $slug — recent down alert active. Suppress refire."
+                continue
+              fi
             fi
 
             clean="${subject% \[upptime\]}"
@@ -203,6 +229,15 @@ jobs:
             echo "[notify] ${clean} → HTTP ${http_code}"
             if [ "${http_code}" != "200" ]; then
               failed=$((failed + 1))
+            else
+              # Slack succeeded — update pairing state.
+              if [ "${new_status}" = "down" ]; then
+                record_alert "$slug" "$url"
+                pending_changes=1
+              elif [ "${new_status}" = "up" ]; then
+                clear_alert "$slug"
+                pending_changes=1
+              fi
             fi
 
             # WhatsApp alert (secondary channel, log-only on failure)

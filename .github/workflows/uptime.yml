@@ -153,7 +153,7 @@ jobs:
             # Defers: code:0 (network failure), any 5xx (502/503/504/etc — transient
             # origin/CDN errors), AND code:403 (Cloudflare Bot Management challenge on
             # the runner IP — often affects multiple CF-fronted sites simultaneously
-            # for ~5 min, then clears). Other 4xx (401/404/429/etc — real client-side
+            # for ~5 min, then clears). Other 4xx (401/404/etc — real client-side
             # errors) bypass and ping immediately. Recovery (status up) deletes any
             # matching marker.
             new_status=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
@@ -166,7 +166,7 @@ jobs:
             url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}' || echo "")
             echo "[gate] sha=$sha slug=$slug new_status=$new_status new_code=$new_code"
 
-            if [ "${new_status}" = "down" ] && echo "${new_code}" | grep -qE '^(0|403|5[0-9][0-9])$'; then
+            if [ "${new_status}" = "down" ] && echo "${new_code}" | grep -qE '^(0|403|429|5[0-9][0-9])$'; then
               # Defer. Write marker, no Slack yet.
               first_seen=$(git show -s --format=%cI "$sha")
               mkdir -p .alerts/pending
@@ -201,7 +201,7 @@ jobs:
               # recent-alerts exists → down was fired → owe a recovery. Fall through.
             fi
 
-            # Down flip with non-deferred code (401/404/429/etc). Apply the
+            # Down flip with non-deferred code (401/404/etc). Apply the
             # same gates as confirm-down-alerts before firing. Bias toward
             # silence: only announce down if external agrees + no cooldown.
             if [ "${new_status}" = "down" ]; then

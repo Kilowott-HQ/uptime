@@ -1,7 +1,7 @@
 url: https://www.vingtor.no/
-status: up
-code: 200
-responseTime: 487
-lastUpdated: 2026-07-17T23:57:45.288Z
+status: down
+code: 503
+responseTime: 69
+lastUpdated: 2026-07-18T04:16:24.142Z
 startTime: 2026-07-08T10:21:01.684Z
 generator: Upptime <https://github.com/upptime/upptime>

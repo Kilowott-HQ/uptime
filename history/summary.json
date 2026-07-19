@@ -13,7 +13,7 @@
     "time": 1162,
     "timeDay": 1003,
     "timeWeek": 1054,
-    "timeMonth": 1140,
+    "timeMonth": 1129,
     "timeYear": 1162,
     "dailyMinutesDown": {}
   },
@@ -31,7 +31,7 @@
     "time": 1875,
     "timeDay": 512,
     "timeWeek": 335,
-    "timeMonth": 2682,
+    "timeMonth": 2689,
     "timeYear": 1875,
     "dailyMinutesDown": {
       "2026-07-18": 20,
@@ -59,7 +59,7 @@
     "time": 1277,
     "timeDay": 1350,
     "timeWeek": 1158,
-    "timeMonth": 1141,
+    "timeMonth": 1128,
     "timeYear": 1277,
     "dailyMinutesDown": {}
   },
@@ -69,15 +69,15 @@
     "icon": "https://icons.duckduckgo.com/ip3/allgrid.com.ico",
     "slug": "allgrid",
     "status": "up",
-    "uptime": "61.02%",
+    "uptime": "61.03%",
     "uptimeDay": "100.00%",
     "uptimeWeek": "100.00%",
     "uptimeMonth": "89.60%",
-    "uptimeYear": "61.02%",
+    "uptimeYear": "61.03%",
     "time": 2563,
     "timeDay": 2500,
     "timeWeek": 2535,
-    "timeMonth": 2391,
+    "timeMonth": 2397,
     "timeYear": 2563,
     "dailyMinutesDown": {
       "2026-07-10": 5,
@@ -147,7 +147,7 @@
     "time": 232,
     "timeDay": 265,
     "timeWeek": 144,
-    "timeMonth": 203,
+    "timeMonth": 207,
     "timeYear": 232,
     "dailyMinutesDown": {
       "2026-06-21": 736,
@@ -168,7 +168,7 @@
     "time": 252,
     "timeDay": 151,
     "timeWeek": 165,
-    "timeMonth": 277,
+    "timeMonth": 283,
     "timeYear": 252,
     "dailyMinutesDown": {
       "2026-06-22": 81,
@@ -190,7 +190,7 @@
     "time": 330,
     "timeDay": 143,
     "timeWeek": 145,
-    "timeMonth": 498,
+    "timeMonth": 512,
     "timeYear": 330,
     "dailyMinutesDown": {
       "2026-06-21": 581,
@@ -211,7 +211,7 @@
     "time": 342,
     "timeDay": 441,
     "timeWeek": 425,
-    "timeMonth": 421,
+    "timeMonth": 432,
     "timeYear": 342,
     "dailyMinutesDown": {
       "2026-06-21": 492,
@@ -232,7 +232,7 @@
     "time": 201,
     "timeDay": 266,
     "timeWeek": 166,
-    "timeMonth": 147,
+    "timeMonth": 150,
     "timeYear": 201,
     "dailyMinutesDown": {
       "2026-06-21": 556,
@@ -253,7 +253,7 @@
     "time": 929,
     "timeDay": 1300,
     "timeWeek": 1011,
-    "timeMonth": 1015,
+    "timeMonth": 1027,
     "timeYear": 929,
     "dailyMinutesDown": {
       "2026-06-21": 596,
@@ -274,7 +274,7 @@
     "time": 289,
     "timeDay": 213,
     "timeWeek": 928,
-    "timeMonth": 372,
+    "timeMonth": 378,
     "timeYear": 289,
     "dailyMinutesDown": {
       "2026-06-21": 811,
@@ -295,7 +295,7 @@
     "time": 303,
     "timeDay": 218,
     "timeWeek": 202,
-    "timeMonth": 247,
+    "timeMonth": 248,
     "timeYear": 303,
     "dailyMinutesDown": {
       "2026-07-19": 10,
@@ -333,7 +333,7 @@
     "time": 714,
     "timeDay": 825,
     "timeWeek": 624,
-    "timeMonth": 713,
+    "timeMonth": 720,
     "timeYear": 714,
     "dailyMinutesDown": {
       "2026-07-18": 5,
@@ -361,7 +361,7 @@
     "time": 1002,
     "timeDay": 1010,
     "timeWeek": 970,
-    "timeMonth": 995,
+    "timeMonth": 992,
     "timeYear": 1002,
     "dailyMinutesDown": {
       "2026-07-18": 10,
@@ -427,14 +427,14 @@
     "url": "https://intervaults.com/",
     "icon": "https://icons.duckduckgo.com/ip3/intervaults.com.ico",
     "slug": "intervaults",
-    "status": "up",
-    "uptime": "93.58%",
-    "uptimeDay": "93.29%",
-    "uptimeWeek": "93.58%",
-    "uptimeMonth": "93.58%",
-    "uptimeYear": "93.58%",
+    "status": "down",
+    "uptime": "93.69%",
+    "uptimeDay": "93.59%",
+    "uptimeWeek": "93.69%",
+    "uptimeMonth": "93.69%",
+    "uptimeYear": "93.69%",
     "time": 1394,
-    "timeDay": 1379,
+    "timeDay": 1374,
     "timeWeek": 1394,
     "timeMonth": 1394,
     "timeYear": 1394,
@@ -445,7 +445,7 @@
       "2026-07-16": 90,
       "2026-07-15": 87,
       "2026-07-14": 122,
-      "2026-07-13": 25
+      "2026-07-13": 18
     }
   },
   {

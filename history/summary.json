@@ -430,12 +430,12 @@
     "url": "https://intervaults.com/",
     "icon": "https://icons.duckduckgo.com/ip3/intervaults.com.ico",
     "slug": "intervaults",
-    "status": "up",
-    "uptime": "94.81%",
-    "uptimeDay": "91.50%",
-    "uptimeWeek": "94.81%",
-    "uptimeMonth": "94.81%",
-    "uptimeYear": "94.81%",
+    "status": "down",
+    "uptime": "94.83%",
+    "uptimeDay": "91.48%",
+    "uptimeWeek": "94.83%",
+    "uptimeMonth": "94.83%",
+    "uptimeYear": "94.83%",
     "time": 1561,
     "timeDay": 2391,
     "timeWeek": 1561,
@@ -446,7 +446,7 @@
       "2026-07-18": 90,
       "2026-07-17": 92,
       "2026-07-16": 90,
-      "2026-07-15": 86
+      "2026-07-15": 84
     }
   },
   {

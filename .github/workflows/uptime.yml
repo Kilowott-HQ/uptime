@@ -44,7 +44,14 @@ jobs:
         # follow-up "Restore .upptimerc.yml" step at the end of the job uses
         # this to undo any committed strip that upptime-monitor@v1.41.3 made
         # when it auto-pushed the working-tree state.
-        run: cp .upptimerc.yml /tmp/upptimerc.canonical.yml
+        #
+        # Source is the committed .upptimerc.canonical.yml (NOT the working
+        # .upptimerc.yml). This makes the self-heal resilient to a prior run
+        # that crashed with a stripped .upptimerc.yml on master — the previous
+        # implementation would then persist the stripped state forever because
+        # canonical was captured post-strip. Keeping canonical as a separate
+        # tracked file breaks that loop; upptime-monitor never touches it.
+        run: cp .upptimerc.canonical.yml /tmp/upptimerc.canonical.yml
 
       - name: Strip Playwright-checked sites from .upptimerc.yml
         # Gutta + Utviklingscoach are tagged `playwright` — they block GitHub Actions

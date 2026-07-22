@@ -390,19 +390,19 @@
     "url": "https://cakemyday.ai/",
     "icon": "https://icons.duckduckgo.com/ip3/cakemyday.ai.ico",
     "slug": "cake-my-day",
-    "status": "down",
+    "status": "up",
     "uptime": "100.00%",
-    "uptimeDay": "99.97%",
-    "uptimeWeek": "100.00%",
+    "uptimeDay": "99.89%",
+    "uptimeWeek": "99.98%",
     "uptimeMonth": "100.00%",
     "uptimeYear": "100.00%",
-    "time": 2649,
-    "timeDay": 15493,
-    "timeWeek": 5147,
-    "timeMonth": 2649,
-    "timeYear": 2649,
+    "time": 2609,
+    "timeDay": 10835,
+    "timeWeek": 4744,
+    "timeMonth": 2609,
+    "timeYear": 2609,
     "dailyMinutesDown": {
-      "2026-07-22": 0
+      "2026-07-22": 2
     }
   },
   {

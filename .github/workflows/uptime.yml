@@ -75,12 +75,38 @@ jobs:
           PYEOF
 
       - name: Check endpoint status
+        id: check_status
+        # upptime-monitor@v1.41.3's internal auto-push races with concurrent
+        # workflow pushes (uptime-playwright, confirm-down-alerts, etc.) and
+        # exits non-zero with "failed to push some refs" — but its history
+        # commits land via retries anyway. Tolerate that specific failure
+        # class in the follow-up step below; keep real failures loud.
+        continue-on-error: true
         uses: upptime/uptime-monitor@v1.41.3
         with:
           command: "update"
         env:
           GH_PAT: ${{ secrets.GH_PAT || github.token }}
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
+
+      - name: Fail only on non-push-race errors
+        # Runs whenever upptime-monitor exits non-zero. If new commits
+        # touching history/ or .upptimerc.yml appeared on origin/master
+        # since job start, the push-race retry succeeded → treat as OK.
+        # Otherwise upptime-monitor genuinely failed → propagate.
+        if: steps.check_status.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          START_SHA="${{ steps.pre_sha.outputs.sha }}"
+          git fetch origin master --quiet
+          new_commits=$(git log "${START_SHA}..origin/master" --pretty=format:"%H" -- history/ .upptimerc.yml 2>/dev/null | wc -l)
+          echo "[verify] commits touching history/ or .upptimerc.yml since ${START_SHA:0:7}: ${new_commits}"
+          if [ "${new_commits}" -gt 0 ]; then
+            echo "[verify] upptime-monitor's data landed on master despite non-zero exit — treating as push-race, marking success."
+            exit 0
+          fi
+          echo "[verify] no upptime-monitor commits reached master AND step failed — real failure, propagating."
+          exit 1
 
       - name: Reconcile summary.json status from per-site history
         # Upptime bug: summary.json's `status` field is only refreshed on

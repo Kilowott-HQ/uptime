@@ -265,6 +265,13 @@ sites:
   - client-coo
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Basecamp Explorer
+  url: https://basecampexplorer.com/
+  tags:
+  - production
+  - client-basecampexplorer
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

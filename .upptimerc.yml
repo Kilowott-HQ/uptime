@@ -272,6 +272,13 @@ sites:
   - client-basecampexplorer
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: TUF International
+  url: https://tuf-international.com/
+  tags:
+  - production
+  - client-tufinternational
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

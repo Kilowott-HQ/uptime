@@ -279,6 +279,13 @@ sites:
   - client-tufinternational
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Auto 8-8
+  url: https://www.auto8-8.no/
+  tags:
+  - production
+  - client-auto8-8
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

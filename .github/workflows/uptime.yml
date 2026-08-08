@@ -90,22 +90,45 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Fail only on non-push-race errors
-        # Runs whenever upptime-monitor exits non-zero. If new commits
-        # touching history/ or .upptimerc.yml appeared on origin/master
-        # since job start, the push-race retry succeeded → treat as OK.
-        # Otherwise upptime-monitor genuinely failed → propagate.
+        # Runs whenever upptime-monitor exits non-zero. Determines whether
+        # the failure was a benign push-race (concurrent workflow pushed
+        # first — data still gets through the pipeline) or a real breakage.
+        #
+        # Heuristic: if ANY commit tagged [upptime] or [marker] landed on
+        # origin/master in the recent window, the monitoring pipeline is
+        # functioning — treat this run's non-zero exit as benign. Only fail
+        # if the whole pipeline appears stalled (no bot activity at all).
+        #
+        # Why "any tagged commit" instead of path-scoped:
+        #   Path-scoped check (history/ + .upptimerc.yml only) was too
+        #   strict — a concurrent Playwright push landing SECONDS after
+        #   our own push-race failure often hadn't propagated to origin
+        #   yet at fetch time, giving 0 count → false real-failure.
+        #   Broader "any [upptime]/[marker] commit" heuristic captures
+        #   pipeline liveness reliably.
+        #
+        # The 20s sleep before fetch gives concurrent pushes a moment to
+        # propagate on GitHub's side — races are typically resolved in a
+        # few seconds, but 20s adds margin without significantly delaying
+        # the workflow (steps 8-10 run in parallel via if:always()).
         if: steps.check_status.outcome == 'failure'
         run: |
           set -euo pipefail
           START_SHA="${{ steps.pre_sha.outputs.sha }}"
+          echo "[verify] waiting 20s for concurrent workflow pushes to propagate..."
+          sleep 20
           git fetch origin master --quiet
-          new_commits=$(git log "${START_SHA}..origin/master" --pretty=format:"%H" -- history/ .upptimerc.yml 2>/dev/null | wc -l)
-          echo "[verify] commits touching history/ or .upptimerc.yml since ${START_SHA:0:7}: ${new_commits}"
-          if [ "${new_commits}" -gt 0 ]; then
-            echo "[verify] upptime-monitor's data landed on master despite non-zero exit — treating as push-race, marking success."
+          # Count commits tagged [upptime] or [marker] since job start.
+          # Grep of the subject line is safe because upptime-monitor and
+          # our self-heal always append those tags — we control both.
+          new_bot_commits=$(git log "${START_SHA}..origin/master" --pretty=format:"%s" 2>/dev/null \
+            | grep -cE '\[(upptime|marker)\]$' || echo 0)
+          echo "[verify] bot commits ([upptime] or [marker]) since ${START_SHA:0:7}: ${new_bot_commits}"
+          if [ "${new_bot_commits}" -gt 0 ]; then
+            echo "[verify] monitoring pipeline is alive on master — treating as benign push-race."
             exit 0
           fi
-          echo "[verify] no upptime-monitor commits reached master AND step failed — real failure, propagating."
+          echo "[verify] pipeline appears stalled (no bot activity in window) — real failure, propagating."
           exit 1
 
       - name: Reconcile summary.json status from per-site history

@@ -51,7 +51,12 @@ concurrency:
 jobs:
   confirm:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Bumped from 5 → 10 min: diagnostic capture on real down can add up to
+    # ~4 min of network probing (traceroute + mtr each cap at 90s, plus curl
+    # and nc). 10 min gives comfortable margin without slowing typical runs
+    # (fast path — no pending markers or already-resolved — still exits in
+    # seconds; the extra ceiling only applies when capturing an actual incident).
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -143,7 +148,13 @@ jobs:
             clean="${clean% \[skip ci\]}"
             mention="<!channel> "
             first_seen_human=$(date -u -d "$first_seen" +"%Y-%m-%d %H:%M:%S UTC")
-            payload=$(jq -n --arg text "$(printf '%s*%s*\nDetected: %s' "${mention}" "${clean}" "${first_seen_human}")" '{"text": $text}')
+            # Predict the diagnostic file URL so it can be included in the Slack
+            # alert. The actual file is captured in a defensive subshell after
+            # the Slack POST + WhatsApp — if capture fails, this URL 404s but
+            # alerting is unaffected (URL is just a convenience link).
+            diag_ts=$(date -u +%Y%m%dT%H%M%SZ)
+            diag_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/master/.diagnostics/${slug}-${diag_ts}.md"
+            payload=$(jq -n --arg text "$(printf '%s*%s*\nDetected: %s\nDiagnostics: %s' "${mention}" "${clean}" "${first_seen_human}" "${diag_url}")" '{"text": $text}')
             if [ "${{ inputs.dry_run }}" = "true" ]; then
               echo "[DRY-RUN] would POST to Slack: ${clean} | first_seen=${first_seen_human}"
               echo "[DRY-RUN] payload: ${payload}"
@@ -174,6 +185,88 @@ jobs:
               --data-urlencode "To=${TWILIO_WHATSAPP_TO}" \
               --data-urlencode "Body=${wa_body}" || echo "000")
             echo "[whatsapp] ${slug} ${new_status} → HTTP ${wa_http_code}"
+
+            # Network-path diagnostic capture — writes traceroute, verbose curl,
+            # DNS resolution, and runner metadata to .diagnostics/<slug>-<ts>.md
+            # so the file the Slack alert already links to actually exists.
+            # Only runs on confirmed down (Slack HTTP 200) and outside dry_run.
+            #
+            # Entire capture is wrapped in a subshell with `set +e` — none of
+            # these tools failing (traceroute needs root, mtr may not exist,
+            # curl may time out) can affect the outer workflow. If capture
+            # fails entirely, the Slack link 404s but alerting is unaffected.
+            #
+            # Purpose: hand Servebolt / other hosting support tickets a full
+            # network-path snapshot from the moment the failure was observed,
+            # not the current-time snapshot they'd get if we investigated
+            # later after the incident already recovered.
+            if [ "${http_code}" = "200" ] && [ "${{ inputs.dry_run }}" != "true" ]; then
+              (
+                set +e
+                mkdir -p .diagnostics
+                diag_file=".diagnostics/${slug}-${diag_ts}.md"
+                host=$(echo "$url" | sed -E 's|https?://||; s|/.*||')
+                capture_iso=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                {
+                  echo "# Diagnostic capture: ${slug}"
+                  echo ""
+                  echo "- **Slug:** \`$slug\`"
+                  echo "- **URL:** ${url}"
+                  echo "- **Host:** \`${host}\`"
+                  echo "- **First seen down:** ${first_seen}"
+                  echo "- **Diagnostic captured at:** ${capture_iso}"
+                  echo "- **Marker age at capture:** ${age}s"
+                  echo "- **Captured from:** GitHub Actions ubuntu-latest runner"
+                  echo ""
+                  echo "## Runner external IP"
+                  echo '```'
+                  curl -s --max-time 10 ifconfig.me 2>&1 || echo "(unavailable)"
+                  echo ""
+                  echo '```'
+                  echo ""
+                  echo "## DNS resolution (dig)"
+                  echo '```'
+                  dig +short "$host" 2>&1 | head -20 || echo "(dig failed)"
+                  echo '```'
+                  echo ""
+                  echo "## TCP connect test to :443 (nc -zv)"
+                  echo '```'
+                  timeout 15 nc -zv -w 5 "$host" 443 2>&1 || echo "(nc failed or timed out)"
+                  echo '```'
+                  echo ""
+                  echo "## Verbose curl to ${url}"
+                  echo '```'
+                  timeout 35 curl -v --max-time 30 \
+                    -A "Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)" \
+                    "$url" -o /dev/null 2>&1 | head -120 || echo "(curl failed)"
+                  echo '```'
+                  echo ""
+                  echo "## TCP traceroute to :443 (traceroute -T -p 443)"
+                  echo '```'
+                  timeout 90 sudo traceroute -T -p 443 -n -m 30 -w 3 "$host" 2>&1 | head -50 || echo "(traceroute failed or unavailable)"
+                  echo '```'
+                  echo ""
+                  echo "## MTR TCP path summary (mtr --tcp --port 443 -c 5)"
+                  echo '```'
+                  timeout 90 sudo mtr --tcp --port 443 --report --report-cycles 5 --no-dns "$host" 2>&1 | head -50 || echo "(mtr failed or unavailable)"
+                  echo '```'
+                  echo ""
+                  echo "## External confirmation"
+                  echo ""
+                  echo "This diagnostic was captured from the same runner-class that reported the site down."
+                  echo "The confirm-down-alerts workflow's Gate 1 (check-host.net multi-node probe) also"
+                  echo "reported this site down from independent international networks at the same moment;"
+                  echo "see the workflow run log for the specific request_id and node IPs."
+                } > "$diag_file" 2>&1
+                if [ -f "$diag_file" ]; then
+                  git add "$diag_file" 2>/dev/null || true
+                  changed=1
+                  echo "[diagnostic] captured ${diag_file}"
+                else
+                  echo "[diagnostic] capture failed — file not written (Slack link will 404)"
+                fi
+              ) || true
+            fi
           done
 
           # NOTE: recent-alerts files are NOT auto-purged. They're the pairing

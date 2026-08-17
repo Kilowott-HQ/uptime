@@ -8,6 +8,14 @@ sites:
   - client-nordicfundday
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Equinavia
+  url: https://equinavia.com/
+  tags:
+  - production
+  - client-equinavia
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Preikestolen Basecamp
   url: https://preikestolenbasecamp.com/
   tags:
@@ -72,11 +80,59 @@ sites:
   - client-woodrock
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Paul John Caffeine
+  url: https://pauljohncaffeine.com/
+  tags:
+  - production
+  - client-pauljohn
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Gutta
+  url: https://gutta.no/
+  tags:
+  - production
+  - client-gutta
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Utviklingscoach
+  url: https://utviklingscoach.no/
+  tags:
+  - production
+  - client-utviklingscoach
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Fomo
+  url: https://fomo.no/
+  tags:
+  - production
+  - client-fomo
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Ways Trafikkskole
+  url: https://ways-trafikkskole.no/
+  tags:
+  - production
+  - client-ways
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Norweh
   url: https://norweh.com/
   tags:
   - production
   - client-norweh
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Norisma
+  url: https://norisma.no/
+  tags:
+  - production
+  - client-norisma
+  - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Norweh Canada
@@ -86,11 +142,123 @@ sites:
   - client-norweh
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Coffee Zero NO
+  url: https://coffeezero.no/
+  tags:
+  - production
+  - client-coffeezero
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Coffee Zero SE
+  url: https://coffeezero.se/
+  tags:
+  - production
+  - client-coffeezero
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Tea Zero SE
+  url: https://teazero.se/
+  tags:
+  - production
+  - client-teazero
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Menakur NO
+  url: https://menakur.no/
+  tags:
+  - production
+  - client-menakur
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Menakur SE
+  url: https://menakur.se/
+  tags:
+  - production
+  - client-menakur
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Betakaroten NO
+  url: https://betakaroten.no/
+  tags:
+  - production
+  - client-betakaroten
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Betakaroten SE
+  url: https://betakaroten.se/
+  tags:
+  - production
+  - client-betakaroten
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Norisma SE
+  url: https://norisma.se/
+  tags:
+  - production
+  - client-norisma
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: CakeMyDay
   url: https://cakemyday.ai/
   tags:
   - production
   - client-cakemyday
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Insynk
+  url: https://insynk.no/
+  tags:
+  - production
+  - client-insynk
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Aloe Vera Shop
+  url: https://aloeverashop.no/
+  tags:
+  - production
+  - client-aloeverashop
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Unfluenser
+  url: https://unfluenser.no/
+  tags:
+  - production
+  - client-unfluenser
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Vingtor
+  url: https://www.vingtor.no/
+  tags:
+  - production
+  - client-vingtor
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Hotel Continental
+  url: https://hotelcontinental.no/
+  tags:
+  - production
+  - client-hotelcontinental
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Gutta Fra Havet
+  url: https://guttafrahavet.no/
+  tags:
+  - production
+  - client-guttafrahavet
+  - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Coo

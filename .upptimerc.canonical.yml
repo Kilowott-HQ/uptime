@@ -13,6 +13,7 @@ sites:
   tags:
   - production
   - client-equinavia
+  - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Preikestolen Basecamp
@@ -84,6 +85,7 @@ sites:
   tags:
   - production
   - client-pauljohn
+  - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Gutta
@@ -240,6 +242,7 @@ sites:
   tags:
   - production
   - client-vingtor
+  - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Hotel Continental

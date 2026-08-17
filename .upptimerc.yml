@@ -84,6 +84,7 @@ sites:
   tags:
   - production
   - client-pauljohn
+  - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Gutta

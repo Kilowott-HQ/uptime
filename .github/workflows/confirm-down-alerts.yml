@@ -7,16 +7,24 @@
 # 7, 12...) and re-reads current history/<slug>.yml. If site is still down
 # after ~6 min, ping Slack. If recovered, silently drop the marker.
 #
-# TWO ANTI-FALSE-POSITIVE GATES before Slack fires (shared with uptime.yml
-# and uptime-playwright.yml via .github/scripts/alert-gates.sh):
+# THREE ANTI-FALSE-POSITIVE GATES before Slack fires:
 #   1. External re-probe (check-host.net multi-node) — the runner's view
 #      alone is not enough. If any external node sees UP, silent-resolve
 #      (runner-blocked, not real outage). Handles Hostinger/CDN blocking
 #      Azure IP range. Async: request → wait 8s → poll result.
+#      Shared via .github/scripts/alert-gates.sh.
 #   2. Cooldown (COOLDOWN_SECONDS) — after Slack fires for slug X, block
 #      further down pings for X within window. Prevents repeat noise from
 #      a flapping site. Recovery ("up") pings unaffected — they pair with
 #      the recorded down-alert (see pairing invariant in uptime.yml).
+#      Shared via .github/scripts/alert-gates.sh.
+#   3. Fresh runner re-check — do a live curl RIGHT NOW from confirm-down's
+#      runner. If site returns 2xx/3xx, the outage is already over and
+#      alerting has nothing actionable to say. Handles the coo.no /
+#      Servebolt edge-network pattern where TCP-level unreachability
+#      clears within a few minutes and monitoring history has lagged.
+#      Inline (not shared) because it's specific to this workflow's
+#      "confirm at check time" semantics.
 #
 # COMMIT TAG: all commits from this workflow MUST end in [marker] (NOT
 # [upptime]) so the uptime notify grep `\[upptime\]$` cannot match and
@@ -143,7 +151,30 @@ jobs:
               continue
             fi
 
-            # Still down, external agrees down, cooldown clear — ping Slack now.
+            # Gate 3: fresh runner-side re-check.
+            #
+            # By the time we get here, the marker is 6+ min old and the failure
+            # was independently confirmed by check-host.net at flip time. But
+            # short-lived TCP blips (Servebolt edge/network for coo.no is the
+            # canonical case) often clear within a few minutes. If the site is
+            # reachable NOW from this runner, silent-resolve — the outage is
+            # already over and there's nothing actionable to alert on.
+            #
+            # Accepts 2xx OR 3xx as reachable (301 redirects are valid too).
+            # `|| echo "000"` never fails on curl error → still down → alerts fire.
+            runner_recheck=$(curl -sL -o /dev/null -w "%{http_code}" \
+              -A "Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)" \
+              --max-time 15 "$url" 2>/dev/null || echo "000")
+            echo "[runner-recheck] $slug $url → HTTP $runner_recheck"
+            if echo "$runner_recheck" | grep -qE '^[23][0-9][0-9]$'; then
+              echo "[runner-up] $slug — reachable from confirm-down's runner NOW ($runner_recheck). Outage cleared. Silent-resolve."
+              git rm -f "$marker"
+              changed=1
+              continue
+            fi
+
+            # Still down, external agrees down, cooldown clear, runner re-check
+            # confirms unreachable — ping Slack now.
             clean="${subject% \[upptime\]}"
             clean="${clean% \[skip ci\]}"
             mention="<!channel> "

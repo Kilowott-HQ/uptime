@@ -234,6 +234,18 @@ jobs:
             if [ "${http_code}" = "200" ] && [ "${{ inputs.dry_run }}" != "true" ]; then
               (
                 set +e
+                # Install traceroute if missing. ubuntu-latest ships mtr, dig,
+                # curl, nc — but NOT traceroute (verified across 4 prior
+                # diagnostic captures where every "TCP traceroute" section
+                # printed "command not found"). Servebolt's Aug 2026 reply
+                # explicitly asked for traceroute output for future incidents.
+                # Failure is non-fatal — if apt-get can't install, the
+                # existing "traceroute failed or unavailable" fallback still
+                # prints in the diagnostic file. Never breaks the workflow.
+                if ! command -v traceroute >/dev/null 2>&1; then
+                  sudo apt-get install -y traceroute >/dev/null 2>&1 \
+                    || echo "[diagnostic] traceroute install failed — proceeding without"
+                fi
                 mkdir -p .diagnostics
                 diag_file=".diagnostics/${slug}-${diag_ts}.md"
                 host=$(echo "$url" | sed -E 's|https?://||; s|/.*||')

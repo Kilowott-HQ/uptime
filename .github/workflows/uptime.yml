@@ -34,6 +34,13 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.GH_PAT || github.token }}
+          # Full history. Shallow clones (default fetch-depth: 1) make the
+          # notify step's `git log START_SHA..origin/master` return the
+          # entire remote history whenever a merge push extends master past
+          # the shallow boundary - Slack then replays every historical
+          # state-change commit with its original committer date. Seen once
+          # in the wild (Aug 21 2026, PR #386 merge -> July 1 Allgrid pings).
+          fetch-depth: 0
 
       - name: Capture starting SHA
         id: pre_sha
@@ -182,7 +189,14 @@ jobs:
           source .github/scripts/alert-gates.sh
           START_SHA="${{ steps.pre_sha.outputs.sha }}"
           git fetch origin --quiet
-          changes=$(git log "${START_SHA}..origin/master" --pretty=format:"%H|%s" | grep -E '\[upptime\]$' | grep -v '|:' || true)
+          # --first-parent: skip commits brought in as the second parent of a
+          # merge (PR merges bring the branch's private history into the
+          # range; those commits already reflect stale state and should not
+          # be replayed as new flips).
+          # --since="1 hour ago": belt-and-braces freshness clamp - a stale
+          # commit surfacing through any other path still can't fire Slack
+          # with a July-era %cI timestamp.
+          changes=$(git log --first-parent --since="1 hour ago" "${START_SHA}..origin/master" --pretty=format:"%H|%s" | grep -E '\[upptime\]$' | grep -v '|:' || true)
           if [ -z "$changes" ]; then
             echo "No state-change commits — nothing to notify"
             exit 0

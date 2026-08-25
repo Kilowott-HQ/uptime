@@ -246,116 +246,140 @@ jobs:
           while IFS='|' read -r sha subject; do
             [ -z "$sha" ] && continue
 
-            # Only ping on commits that flip the status: field in history/<slug>.yml.
-            # Two distinct +/-status: lines ⇒ real flip. Otherwise skip.
-            status_lines=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
-              | grep -E '^[+-]status:' | sort -u)
-            status_distinct=$(echo "$status_lines" | grep -c . || true)
-            if [ "$status_distinct" -lt 2 ]; then
+            # Playwright and (rarely) response-time reruns batch multiple sites
+            # into ONE commit. The commit subject names only the first flip;
+            # every history/*.yml with a real status flip in the diff must be
+            # processed independently, or the wrong slug ends up on the marker.
+            # A "real flip" is a file whose diff contains BOTH a -status: and
+            # a +status: line (2 distinct values) - responseTime-only refresh
+            # touches history/*.yml without producing status: diffs.
+            flipped_files=$(git diff-tree --no-commit-id --name-only -r "$sha" -- 'history/*.yml' 2>/dev/null | while read -r f; do
+              [ -z "$f" ] && continue
+              n=$(git show --no-renames --format= "$sha" -- "$f" | grep -cE '^[+-]status:')
+              if [ "$n" -ge 2 ]; then
+                echo "$f"
+              fi
+            done)
+            if [ -z "$flipped_files" ]; then
               echo "[skip] $subject — no status field change in diff"
               continue
             fi
+            flip_count=$(echo "$flipped_files" | grep -c .)
 
-            # Transient defer-and-confirm — write marker, skip Slack until confirm-down-alerts.yml
-            # verifies the site is still down after one cron tick (~6 min).
-            # Defers: code:0 (network failure), any 5xx (502/503/504/etc — transient
-            # origin/CDN errors), AND code:403 (Cloudflare Bot Management challenge on
-            # the runner IP — often affects multiple CF-fronted sites simultaneously
-            # for ~5 min, then clears). Other 4xx (401/404/etc — real client-side
-            # errors) bypass and ping immediately. Recovery (status up) deletes any
-            # matching marker.
-            new_status=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
-              | grep -E '^\+status:' | head -1 | awk '{print $2}')
-            new_code=$(git show --no-renames --format= "$sha" -- 'history/*.yml' \
-              | grep -E '^\+code:' | head -1 | awk '{print $2}')
-            slug_file=$(git show --no-renames --name-only --format= "$sha" -- 'history/*.yml' | head -1)
-            slug=$(basename "$slug_file" .yml)
-            marker_path=".alerts/pending/${slug}.yml"
-            url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}' || echo "")
-            echo "[gate] sha=$sha slug=$slug new_status=$new_status new_code=$new_code"
+            while IFS= read -r slug_file; do
+              [ -z "$slug_file" ] && continue
+              slug=$(basename "$slug_file" .yml)
+              # Every field bound to the specific flipped file, not `head -1`
+              # across the whole commit.
+              new_status=$(git show --no-renames --format= "$sha" -- "$slug_file" | grep -E '^\+status:' | awk '{print $2}')
+              new_code=$(git show --no-renames --format= "$sha" -- "$slug_file" | grep -E '^\+code:' | awk '{print $2}')
+              new_response=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^responseTime:' | awk '{print $2}')
+              url=$(git show "${sha}:${slug_file}" 2>/dev/null | grep -E '^url:' | awk '{print $2}' || echo "")
+              marker_path=".alerts/pending/${slug}.yml"
+              echo "[gate] sha=$sha slug=$slug new_status=$new_status new_code=$new_code"
 
-            if [ "${new_status}" = "down" ] && echo "${new_code}" | grep -qE '^(0|403|429|5[0-9][0-9])$'; then
-              # Defer. Write marker, no Slack yet.
-              first_seen=$(git show -s --format=%cI "$sha")
-              mkdir -p .alerts/pending
-              {
-                echo "url: ${url}"
-                echo "subject: ${subject}"
-                echo "commit_url: https://github.com/${{ github.repository }}/commit/${sha}"
-                echo "first_seen: ${first_seen}"
-                echo "new_status: ${new_status}"
-              } > "$marker_path"
-              git add "$marker_path"
-              pending_changes=1
-              echo "[defer] $subject — marker written. confirm-down-alerts will verify in ~6 min."
-              continue
-            fi
-
-            # Up flip — pairing invariant. Fire recovery ONLY if the down was
-            # previously announced (pending marker OR recent-alerts record).
-            if [ "${new_status}" = "up" ]; then
-              if [ -f "$marker_path" ]; then
-                git rm -f "$marker_path"
+              # Transient defer-and-confirm — write marker, skip Slack until confirm-down-alerts.yml
+              # verifies the site is still down after one cron tick (~6 min).
+              # Defers: code:0 (network failure), any 5xx (502/503/504/etc — transient
+              # origin/CDN errors), AND code:403 (Cloudflare Bot Management challenge on
+              # the runner IP — often affects multiple CF-fronted sites simultaneously
+              # for ~5 min, then clears). Other 4xx (401/404/etc — real client-side
+              # errors) bypass and ping immediately. Recovery (status up) deletes any
+              # matching marker.
+              if [ "${new_status}" = "down" ] && echo "${new_code}" | grep -qE '^(0|403|429|5[0-9][0-9])$'; then
+                # Defer. Write marker, no Slack yet.
+                first_seen=$(git show -s --format=%cI "$sha")
+                mkdir -p .alerts/pending
+                {
+                  echo "url: ${url}"
+                  echo "subject: ${subject}"
+                  echo "commit_url: https://github.com/${{ github.repository }}/commit/${sha}"
+                  echo "first_seen: ${first_seen}"
+                  echo "new_status: ${new_status}"
+                } > "$marker_path"
+                git add "$marker_path"
                 pending_changes=1
-                echo "[suppress] $subject — recovery before confirm tick. No Slack."
+                echo "[defer] ${slug} ${new_status} (${new_code}) — marker written. confirm-down-alerts will verify in ~6 min."
                 continue
               fi
-              if ! has_pending_recovery "$slug"; then
-                echo "[suppress] $subject — no matching down alert was announced. Silent recovery."
-                continue
-              fi
-              # recent-alerts exists → down was fired → owe a recovery. Fall through.
-            fi
 
-            # Down flip with non-deferred code (401/404/etc). Same gates
-            # as confirm-down-alerts before firing.
-            if [ "${new_status}" = "down" ]; then
-              if check_external_up "$url"; then
-                echo "[external-up] $slug — external sees UP. Runner-blocked, not real outage. No Slack."
-                continue
+              # Up flip — pairing invariant. Fire recovery ONLY if the down was
+              # previously announced (pending marker OR recent-alerts record).
+              if [ "${new_status}" = "up" ]; then
+                if [ -f "$marker_path" ]; then
+                  git rm -f "$marker_path"
+                  pending_changes=1
+                  echo "[suppress] ${slug} up — recovery before confirm tick. No Slack."
+                  continue
+                fi
+                if ! has_pending_recovery "$slug"; then
+                  echo "[suppress] ${slug} up — no matching down alert was announced. Silent recovery."
+                  continue
+                fi
+                # recent-alerts exists → down was fired → owe a recovery. Fall through.
               fi
-              if check_cooldown_active "$slug"; then
-                echo "[cooldown] $slug — recent down alert active. Suppress refire."
-                continue
-              fi
-            fi
 
-            clean="${subject% \[upptime\]}"
-            clean="${clean% \[skip ci\]}"
-            mention="<!channel> "
-            flip_iso=$(git show -s --format=%cI "$sha")
-            flip_time=$(date -u -d "$flip_iso" +"%Y-%m-%d %H:%M:%S UTC")
-            payload=$(jq -n --arg text "$(printf '%s*%s*\nDetected: %s' "${mention}" "${clean}" "${flip_time}")" '{"text": $text}')
-            http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-              --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
-              -X POST "${SLACK_WEBHOOK_URL}" \
-              -H "Content-Type: application/json" \
-              -d "${payload}" || echo "000")
-            echo "[notify] ${clean} → HTTP ${http_code}"
-            if [ "${http_code}" != "200" ]; then
-              failed=$((failed + 1))
-            else
-              # Slack succeeded — update pairing state.
+              # Down flip with non-deferred code (401/404/etc). Same gates
+              # as confirm-down-alerts before firing.
               if [ "${new_status}" = "down" ]; then
-                record_alert "$slug" "$url"
-                pending_changes=1
-              elif [ "${new_status}" = "up" ]; then
-                clear_alert "$slug"
-                pending_changes=1
+                if check_external_up "$url"; then
+                  echo "[external-up] $slug — external sees UP. Runner-blocked, not real outage. No Slack."
+                  continue
+                fi
+                if check_cooldown_active "$slug"; then
+                  echo "[cooldown] $slug — recent down alert active. Suppress refire."
+                  continue
+                fi
               fi
-            fi
 
-            # WhatsApp alert (secondary channel, log-only on failure)
-            timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-            wa_body="${slug} ${new_status} since ${timestamp}"
-            wa_http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-              --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
-              -X POST "https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json" \
-              -u "${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}" \
-              --data-urlencode "From=${TWILIO_WHATSAPP_FROM}" \
-              --data-urlencode "To=${TWILIO_WHATSAPP_TO}" \
-              --data-urlencode "Body=${wa_body}" || echo "000")
-            echo "[whatsapp] ${slug} ${new_status} → HTTP ${wa_http_code}"
+              # Single-flip commits: the commit subject correctly names this
+              # slug. Multi-flip commits: subject names only ONE site, so we
+              # synthesize a slug-specific label for every other flipped site.
+              if [ "$flip_count" -eq 1 ]; then
+                clean="${subject% \[upptime\]}"
+                clean="${clean% \[skip ci\]}"
+              else
+                if [ "${new_status}" = "up" ]; then
+                  clean="🟩 ${slug} is up (${new_code} in ${new_response} ms)"
+                else
+                  clean="🟥 ${slug} is down (${new_code} in ${new_response} ms)"
+                fi
+              fi
+              mention="<!channel> "
+              flip_iso=$(git show -s --format=%cI "$sha")
+              flip_time=$(date -u -d "$flip_iso" +"%Y-%m-%d %H:%M:%S UTC")
+              payload=$(jq -n --arg text "$(printf '%s*%s*\nDetected: %s' "${mention}" "${clean}" "${flip_time}")" '{"text": $text}')
+              http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+                --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+                -X POST "${SLACK_WEBHOOK_URL}" \
+                -H "Content-Type: application/json" \
+                -d "${payload}" || echo "000")
+              echo "[notify] ${clean} → HTTP ${http_code}"
+              if [ "${http_code}" != "200" ]; then
+                failed=$((failed + 1))
+              else
+                # Slack succeeded — update pairing state.
+                if [ "${new_status}" = "down" ]; then
+                  record_alert "$slug" "$url"
+                  pending_changes=1
+                elif [ "${new_status}" = "up" ]; then
+                  clear_alert "$slug"
+                  pending_changes=1
+                fi
+              fi
+
+              # WhatsApp alert (secondary channel, log-only on failure)
+              timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+              wa_body="${slug} ${new_status} since ${timestamp}"
+              wa_http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+                --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+                -X POST "https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json" \
+                -u "${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}" \
+                --data-urlencode "From=${TWILIO_WHATSAPP_FROM}" \
+                --data-urlencode "To=${TWILIO_WHATSAPP_TO}" \
+                --data-urlencode "Body=${wa_body}" || echo "000")
+              echo "[whatsapp] ${slug} ${new_status} → HTTP ${wa_http_code}"
+            done <<< "$flipped_files"
           done <<< "${changes}"
           if [ "${pending_changes}" -gt 0 ]; then
             git config user.name "Upptime Bot"

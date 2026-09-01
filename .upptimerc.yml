@@ -296,6 +296,14 @@ sites:
   - client-mackinnon
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Models Goa
+  url: https://modelsgoa.com/
+  tags:
+  - production
+  - client-modelsgoa
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

@@ -13,11 +13,22 @@
 #      (runner-blocked, not real outage). Handles Hostinger/CDN blocking
 #      Azure IP range. Async: request → wait 8s → poll result.
 #      Shared via .github/scripts/alert-gates.sh.
-#   2. Cooldown (COOLDOWN_SECONDS) — after Slack fires for slug X, block
-#      further down pings for X within window. Prevents repeat noise from
-#      a flapping site. Recovery ("up") pings unaffected — they pair with
-#      the recorded down-alert (see pairing invariant in uptime.yml).
-#      Shared via .github/scripts/alert-gates.sh.
+#   2. Cooldown (per-site, defaults 30 min; `flappy`-tagged sites e.g. fomo
+#      use 24h via .alerts/config/<slug>.yml) — after Slack fires for slug
+#      X, block further down pings for X within the window. Prevents
+#      repeat noise from a chronically flapping origin. Recovery ("up")
+#      pings unaffected — they pair with the recorded down-alert (see
+#      pairing invariant in uptime.yml). Shared via alert-gates.sh.
+#
+#      Cooldown state lives in .alerts/alert-log/<slug>.yml (PERSISTENT —
+#      NOT cleared by clear_alert). Kept separate from the pairing record
+#      in .alerts/recent-alerts/ because pairing IS cleared by recovery,
+#      and tying cooldown to that would reset it every cycle.
+#
+#      SAFETY NET: escalation gate. If cooldown silenced an alert but the
+#      outage has now persisted 60+ min (ESCALATION_THRESHOLD), fire a
+#      distinct STILL-down ping regardless of cooldown. Guarantees we
+#      never miss a real long outage inside the cooldown window.
 #   3. Fresh runner re-check — do a live curl RIGHT NOW from confirm-down's
 #      runner. If site returns 2xx/3xx, the outage is already over and
 #      alerting has nothing actionable to say. Handles the coo.no /
@@ -93,8 +104,19 @@ jobs:
           git fetch origin master --quiet
           mkdir -p .alerts/recent-alerts
           now_ts=$(date -u +%s)
-          AGE_THRESHOLD=360        # 6 minutes — min age before considering Slack
-          STALE_THRESHOLD=7200     # 2 hours — force-resolve stuck markers
+          AGE_THRESHOLD=360         # 6 minutes — min age before considering Slack
+          ESCALATION_THRESHOLD=3600 # 60 minutes — fire STILL-down ping if
+                                    # a marker's outage has persisted this long
+                                    # AND cooldown was silencing the alert.
+                                    # Safety net for the cooldown gate — never
+                                    # miss a real long outage.
+          STALE_THRESHOLD=86400     # 24 hours — force-resolve stuck markers.
+                                    # Raised from 2h so cooldown-silenced
+                                    # markers persist long enough for the
+                                    # escalation gate to catch a genuine
+                                    # multi-hour outage. A stuck marker at
+                                    # this age is a real bug, not a live
+                                    # incident.
 
           changed=0
           failed=0
@@ -142,12 +164,76 @@ jobs:
               continue
             fi
 
-            # Gate 2: cooldown. Suppress refire within COOLDOWN_SECONDS of a
-            # previous down-alert for the same slug.
+            # Gate 2: cooldown. Suppress refire within cooldown window of a
+            # previous down-alert for the same slug. Per-site override via
+            # .alerts/config/<slug>.yml (see: fomo, tagged `flappy`, 6h
+            # cooldown).
+            #
+            # Under cooldown we DO NOT silent-resolve the marker anymore.
+            # Keeping it lets the escalation gate below catch a genuine
+            # long outage inside the cooldown window. The marker will be
+            # cleaned up when either:
+            #   - the site actually recovers (resolve branch above), or
+            #   - escalation fires (see below), or
+            #   - STALE_THRESHOLD hits (24h — a real bug, not a live incident).
             if check_cooldown_active "$slug"; then
-              echo "[cooldown] $slug — recent alert active. Silent-resolve marker."
-              git rm -f "$marker"
-              changed=1
+              escalated_at=$(yq -r '.escalated_at // empty' "$marker" 2>/dev/null || echo "")
+              if [ -z "$escalated_at" ] && [ "$age" -ge "$ESCALATION_THRESHOLD" ]; then
+                # ESCALATION: cooldown was silencing this alert, but the outage
+                # has now persisted 60+ min. Fire a distinct STILL-down ping
+                # so we can't ever miss a real long outage just because a
+                # short flap earlier put us in cooldown.
+                echo "[escalate] $slug — down ${age}s ≥ ${ESCALATION_THRESHOLD}s during cooldown. STILL-down ping."
+                clean_still="🟥 ${slug} STILL down (${age}s = $((age/60)) min since ${first_seen})"
+                mention_still="<!channel> "
+                first_seen_human_still=$(date -u -d "$first_seen" +"%Y-%m-%d %H:%M:%S UTC")
+                diag_ts_still=$(date -u +%Y%m%dT%H%M%SZ)
+                diag_url_still="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/master/.diagnostics/${slug}-${diag_ts_still}.md"
+                payload_still=$(jq -n --arg text "$(printf '%s*%s*\nFirst seen down: %s\nDiagnostics: %s' "${mention_still}" "${clean_still}" "${first_seen_human_still}" "${diag_url_still}")" '{"text": $text}')
+                if [ "${{ inputs.dry_run }}" = "true" ]; then
+                  echo "[DRY-RUN] would POST escalation to Slack: ${clean_still}"
+                  esc_http_code=200
+                else
+                  esc_http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+                    --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+                    -X POST "${SLACK_WEBHOOK_URL}" \
+                    -H "Content-Type: application/json" \
+                    -d "${payload_still}" || echo "000")
+                fi
+                echo "[notify-escalation] ${clean_still} → HTTP ${esc_http_code}"
+                if [ "${esc_http_code}" = "200" ]; then
+                  # Stamp escalated_at on the marker so we don't re-fire on
+                  # subsequent ticks, and record_alert to refresh the
+                  # cooldown clock (extends suppression window by another
+                  # full cooldown from now).
+                  now_iso=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                  {
+                    echo "url: ${url}"
+                    echo "subject: ${subject}"
+                    echo "commit_url: ${commit_url}"
+                    echo "first_seen: ${first_seen}"
+                    echo "new_status: ${new_status}"
+                    echo "escalated_at: ${now_iso}"
+                  } > "$marker"
+                  git add "$marker"
+                  record_alert "$slug" "$url"
+                  changed=1
+                  # WhatsApp mirrors Slack for escalation.
+                  wa_body_still="${slug} STILL down $((age/60))min since ${first_seen}"
+                  wa_esc_code=$(curl -s -o /dev/null -w "%{http_code}" \
+                    --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+                    -X POST "https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json" \
+                    -u "${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}" \
+                    --data-urlencode "From=${TWILIO_WHATSAPP_FROM}" \
+                    --data-urlencode "To=${TWILIO_WHATSAPP_TO}" \
+                    --data-urlencode "Body=${wa_body_still}" || echo "000")
+                  echo "[whatsapp-escalation] ${slug} → HTTP ${wa_esc_code}"
+                else
+                  failed=$((failed + 1))
+                fi
+              else
+                echo "[cooldown] $slug — silenced (marker kept for escalation/recovery check)."
+              fi
               continue
             fi
 

@@ -110,6 +110,7 @@ sites:
   - production
   - client-fomo
   - playwright
+  - flappy
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Ways Trafikkskole

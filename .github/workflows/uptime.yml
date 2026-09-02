@@ -264,21 +264,29 @@ jobs:
               fi
 
               # Up flip — pairing invariant. Fire recovery ONLY if the down was
-              # previously announced (pending marker OR recent-alerts record).
+              # previously announced (initial Slack alert OR escalation ping).
               # If neither exists, the down was silent → recovery must also be
               # silent (channel has many people; every orphan ping is costly).
+              #
+              # Two ways the down could have been announced:
+              #   a) has_pending_recovery → recent-alerts/<slug>.yml exists,
+              #      written by record_alert on either an initial confirm-down
+              #      Slack POST or an escalation Slack POST.
+              #   b) marker has `escalated_at` field → set by confirm-down's
+              #      escalation gate. Present even if recent-alerts was
+              #      cleared by some earlier recovery in the same window.
               if [ "${new_status}" = "up" ]; then
+                announced_via_escalation=""
                 if [ -f "$marker_path" ]; then
+                  announced_via_escalation=$(yq -r '.escalated_at // empty' "$marker_path" 2>/dev/null || echo "")
                   git rm -f "$marker_path"
                   pending_changes=1
-                  echo "[suppress] ${slug} up — recovery before confirm tick. No Slack."
+                fi
+                if [ -z "$announced_via_escalation" ] && ! has_pending_recovery "$slug"; then
+                  echo "[suppress] ${slug} up — no down alert was announced (initial or escalation). Silent recovery."
                   continue
                 fi
-                if ! has_pending_recovery "$slug"; then
-                  echo "[suppress] ${slug} up — no matching down alert was announced. Silent recovery."
-                  continue
-                fi
-                # recent-alerts exists → down was fired → owe a recovery. Fall through.
+                # Fall through: down WAS announced → owe a paired recovery ping.
               fi
 
               # Down flip with non-deferred code (401/404/etc). Apply the

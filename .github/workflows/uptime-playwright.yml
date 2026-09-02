@@ -304,19 +304,21 @@ jobs:
               fi
 
               # Up flip — pairing invariant. Fire recovery ONLY if the down was
-              # previously announced (pending marker OR recent-alerts record).
+              # previously announced (initial Slack alert OR escalation ping).
+              # See uptime.yml for the full rationale of the two announcement
+              # paths (recent-alerts / marker's escalated_at).
               if [ "${new_status}" = "up" ]; then
+                announced_via_escalation=""
                 if [ -f "$marker_path" ]; then
+                  announced_via_escalation=$(yq -r '.escalated_at // empty' "$marker_path" 2>/dev/null || echo "")
                   git rm -f "$marker_path"
                   pending_changes=1
-                  echo "[suppress] ${slug} up — recovery before confirm tick. No Slack."
+                fi
+                if [ -z "$announced_via_escalation" ] && ! has_pending_recovery "$slug"; then
+                  echo "[suppress] ${slug} up — no down alert was announced (initial or escalation). Silent recovery."
                   continue
                 fi
-                if ! has_pending_recovery "$slug"; then
-                  echo "[suppress] ${slug} up — no matching down alert was announced. Silent recovery."
-                  continue
-                fi
-                # recent-alerts exists → down was fired → owe a recovery. Fall through.
+                # Fall through: down WAS announced → owe a paired recovery ping.
               fi
 
               # Down flip with non-deferred code (401/404/etc). Same gates

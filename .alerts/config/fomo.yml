@@ -1,0 +1,20 @@
+# Per-site alert-gate config for fomo.
+#
+# fomo's origin (Servebolt / WordPress) has flapped on average once per
+# day since 2026-08-25 with a mix of short blips (8 min) and multi-hour
+# stalls (3-4 h). Every down is real (external nodes agree each time), so
+# we can't suppress them at the gate. Empirically the inter-outage gap
+# has been 6-30 hours; a 24h cooldown collapses same-day repeats to a
+# single Slack down-ping without silencing the first flap of a new day.
+# Genuine long outages still page us via the 60-min escalation gate in
+# confirm-down-alerts.yml — the STILL-down ping bypasses cooldown so we
+# never lose a real multi-hour incident.
+#
+# Simulator confirmed against the Aug 25-29 event stream: total Slack
+# pings drop from 12 to 9 (3 DOWN + 3 STILL-down + 3 UP), and every
+# outage >60 min still surfaces at least once.
+#
+# Retire this file (and the `flappy` tag on Fomo in .upptimerc.yml) once
+# the origin goes 7 days without a real down.
+
+cooldown_seconds: 86400

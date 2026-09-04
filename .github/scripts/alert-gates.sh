@@ -31,12 +31,23 @@ COOLDOWN_SECONDS_DEFAULT=1800  # 30 minutes
 # exists, else returns the default. Lets us tag chronically-flappy sites
 # (see: fomo) with a longer cooldown without changing default behavior for
 # everyone else. Non-numeric or missing values fall through to the default.
+#
+# Uses grep/awk instead of yq: PR #391 shipped this via `yq -r '.cooldown_seconds // empty'`
+# but Fomo pinged Slack at 2026-09-04T03:35Z despite alert-log showing
+# last_alerted_at 7h44m earlier (well within the 24h override). The
+# workflow log shows no `[cooldown]` output, meaning check_cooldown_active
+# saw the default 30-min cooldown, meaning read_cooldown_seconds did not
+# return 86400. The confirm-down runner's yq (Go-yq on ubuntu-24.04)
+# swallows `// empty` differently than jq's yq, so the returned override
+# either fell through the numeric guard or was already a non-number.
+# grep is the same one-file dependency across every runner image and
+# yields the raw integer directly.
 read_cooldown_seconds() {
   local slug="$1"
   local override_file=".alerts/config/${slug}.yml"
   if [ -f "$override_file" ]; then
     local override
-    override=$(yq -r '.cooldown_seconds // empty' "$override_file" 2>/dev/null || echo "")
+    override=$(grep -E '^cooldown_seconds:' "$override_file" 2>/dev/null | awk '{print $2}' | head -1 | tr -d '[:space:]')
     if [ -n "$override" ] && [ "$override" -eq "$override" ] 2>/dev/null; then
       echo "$override"
       return
@@ -92,13 +103,18 @@ check_cooldown_active() {
   local file=".alerts/alert-log/${slug}.yml"
   [ -f "$file" ] || return 1
   local last_alerted last_ts now_ts since_last
-  last_alerted=$(yq -r '.last_alerted_at // empty' "$file" 2>/dev/null || echo "")
+  # grep instead of yq for the same reason as read_cooldown_seconds — the
+  # runner's yq treats missing keys / `// empty` inconsistently across
+  # versions and the numeric guard downstream can silently fall through.
+  # alert-log is machine-written from record_alert, one key per line, so a
+  # grep is deterministic. Echo the timestamp verbatim to preserve TZ.
+  last_alerted=$(grep -E '^last_alerted_at:' "$file" 2>/dev/null | awk '{print $2}' | head -1)
   [ -z "$last_alerted" ] && return 1
   last_ts=$(date -u -d "$last_alerted" +%s 2>/dev/null || echo 0)
   now_ts=$(date -u +%s)
   since_last=$((now_ts - last_ts))
   if [ "$since_last" -lt "$cooldown" ]; then
-    echo "[cooldown] ${slug} — last alerted ${since_last}s ago (< ${cooldown}s)"
+    echo "[cooldown] ${slug} — last alerted ${since_last}s ago (< ${cooldown}s, override from .alerts/config/${slug}.yml if any)"
     return 0
   fi
   return 1

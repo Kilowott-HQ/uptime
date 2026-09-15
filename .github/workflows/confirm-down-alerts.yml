@@ -37,6 +37,15 @@
 #      Inline (not shared) because it's specific to this workflow's
 #      "confirm at check time" semantics.
 #
+# RACE GUARD: `concurrency: group: confirm-alerts, cancel-in-progress: false`
+# does not reliably serialize runs created within seconds of each other
+# (a workflow_run trigger firing from both Uptime CI and Uptime CI -
+# Playwright completing near-simultaneously produced the observed
+# 2026-09-12 duplicate ping). The main notify path AND the escalation
+# path each re-fetch origin/master right before Slack POST and bail if
+# the marker has already been resolved (or already escalated) by a
+# concurrent confirm-down run.
+#
 # COMMIT TAG: all commits from this workflow MUST end in [marker] (NOT
 # [upptime]) so the uptime notify grep `\[upptime\]$` cannot match and
 # create an infinite Slack loop.
@@ -183,6 +192,20 @@ jobs:
                 # has now persisted 60+ min. Fire a distinct STILL-down ping
                 # so we can't ever miss a real long outage just because a
                 # short flap earlier put us in cooldown.
+                #
+                # Race guard (same rationale as the main-notify path): sync
+                # from origin and re-read the marker's escalated_at there.
+                # If a concurrent run already escalated, its escalated_at
+                # will now be set on origin/master. Skip.
+                git fetch origin master --quiet 2>/dev/null || true
+                origin_escalated_at=""
+                if git cat-file -e "origin/master:${marker}" 2>/dev/null; then
+                  origin_escalated_at=$(git show "origin/master:${marker}" 2>/dev/null | grep -E '^escalated_at:' | awk '{print $2}' | head -1)
+                fi
+                if [ -n "$origin_escalated_at" ]; then
+                  echo "[race-lost] $slug — origin/master marker already escalated_at=${origin_escalated_at}. Skip STILL-down."
+                  continue
+                fi
                 echo "[escalate] $slug — down ${age}s ≥ ${ESCALATION_THRESHOLD}s during cooldown. STILL-down ping."
                 clean_still="🟥 ${slug} STILL down (${age}s = $((age/60)) min since ${first_seen})"
                 mention_still="<!channel> "
@@ -261,6 +284,27 @@ jobs:
 
             # Still down, external agrees down, cooldown clear, runner re-check
             # confirms unreachable — ping Slack now.
+            #
+            # RACE GUARD: GitHub Actions concurrency (`group: confirm-alerts,
+            # cancel-in-progress: false`) does not reliably serialize runs
+            # created within seconds of each other. Observed on 2026-09-12
+            # 05:41 UTC: run 34676577366 (started 05:49:48) and run
+            # 34676596029 (started 05:50:14) both fired Slack for the same
+            # fomo marker — Slack got two duplicate DOWN pings 88s apart.
+            #
+            # Immediately before firing Slack, sync from origin and verify
+            # the marker still exists there. If another concurrent run has
+            # already resolved it (git rm'd + pushed), skip silently — the
+            # other run already sent the ping and did the record_alert.
+            git fetch origin master --quiet 2>/dev/null || true
+            if ! git cat-file -e "origin/master:${marker}" 2>/dev/null; then
+              echo "[race-lost] $slug — marker gone from origin/master (another confirm-down run resolved it). Skip Slack."
+              # Local marker is stale, drop it so we don't try to push it back.
+              git rm -f "$marker" 2>/dev/null || rm -f "$marker"
+              changed=1
+              continue
+            fi
+
             clean="${subject% \[upptime\]}"
             clean="${clean% \[skip ci\]}"
             mention="<!channel> "

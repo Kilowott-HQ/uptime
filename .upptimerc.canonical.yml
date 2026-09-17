@@ -319,6 +319,13 @@ sites:
   - client-premium-nw
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Bakken Landscape
+  url: https://www.bakkenlandscape.com/
+  tags:
+  - production
+  - client-bakken-landscape
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

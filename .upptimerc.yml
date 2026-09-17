@@ -333,6 +333,14 @@ sites:
   - client-igrow-agency
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: CT Hone
+  url: https://www.cthone.com/
+  tags:
+  - production
+  - client-ct-hone
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

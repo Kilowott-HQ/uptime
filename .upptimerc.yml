@@ -348,6 +348,14 @@ sites:
   - client-industrisalg
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: XL Storkjøkken
+  url: https://xl-storkjokken.no/
+  tags:
+  - production
+  - client-xl-storkjokken
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 status-website:
   baseUrl: /uptime
   name: Kilowott status

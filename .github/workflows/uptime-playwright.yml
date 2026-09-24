@@ -3,7 +3,7 @@
 # to GitHub Actions Azure IPs due to Cloudflare Bot Fight Mode.
 #
 # Sites opt in by including the `playwright` tag in .upptimerc.yml.
-# Currently: Gutta (gutta.no), Utviklingscoach (utviklingscoach.no).
+# The tag is the source of truth: grep .upptimerc.yml for `playwright`.
 #
 # Shares the `uptime-ci` concurrency group with uptime.yml so history/
 # commits never race each other. Slack notify logic is identical to

@@ -8,14 +8,6 @@ sites:
   - client-nordicfundday
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
-- name: Equinavia
-  url: https://equinavia.com/
-  tags:
-  - production
-  - client-equinavia
-  - playwright
-  headers:
-  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Preikestolen Basecamp
   url: https://preikestolenbasecamp.com/
   tags:
@@ -85,14 +77,6 @@ sites:
   tags:
   - production
   - client-pauljohn
-  - playwright
-  headers:
-  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
-- name: Gutta
-  url: https://gutta.no/
-  tags:
-  - production
-  - client-gutta
   - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
@@ -251,14 +235,6 @@ sites:
   tags:
   - production
   - client-hotelcontinental
-  - playwright
-  headers:
-  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
-- name: Gutta Fra Havet
-  url: https://guttafrahavet.no/
-  tags:
-  - production
-  - client-guttafrahavet
   - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'

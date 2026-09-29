@@ -80,6 +80,14 @@ sites:
   - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Gutta
+  url: https://gutta.no/
+  tags:
+  - production
+  - client-gutta
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
 - name: Utviklingscoach
   url: https://utviklingscoach.no/
   tags:
@@ -235,6 +243,14 @@ sites:
   tags:
   - production
   - client-hotelcontinental
+  - playwright
+  headers:
+  - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
+- name: Gutta Fra Havet
+  url: https://guttafrahavet.no/
+  tags:
+  - production
+  - client-guttafrahavet
   - playwright
   headers:
   - 'User-Agent: Mozilla/5.0 (compatible; KilowottUptime/1.0; +https://github.com/Kilowott-HQ/uptime)'
